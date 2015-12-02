@@ -1,5 +1,3 @@
-__author__ = 'root'
-
 import glob
 import os
 
