@@ -18,8 +18,8 @@ latest input.
 mapfile : precise the location of the already generated mapfile of the dataset you wish to unpublish.
 """
 Config = ConfigParser.ConfigParser()
-print(Config.read("/root/PycharmProjects/esgPost/src/test.ini"))
-cert_file = Config.get("generic", 'certificate_file')
+print(Config.read('/root/PycharmProjects/esgPost/src/test.ini'))
+cert_file = Config.get('generic', 'certificate_file')
 header = Config.get('generic', 'header')
 temp_dir = Config.get('generic', 'temp_dir')
 index_node = Config.get('generic', 'index_node')
@@ -32,12 +32,12 @@ UNPUBLISH_OP = "ws_unpublish"
 def main():
     argv = sys.argv[1:]
     mandatory_options_dict = {}
-    path = "/home/abennasser/"
+    path = '/home/abennasser/'
     operation = PUBLISH_OP
     mapfile = None
     try:
         args, last_args = getopt.getopt(argv, "", ["help", "schema=", "masterid=", "instance_id=", "file_type=",
-                                                   "dataset_id=", "id=", "version=", "publish", "unpublish",
+                                                   "dataset_id=", "id=", "--path", "version=", "publish", "unpublish",
                                                    "mapfile="])
 
     except getopt.error:
