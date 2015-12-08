@@ -3,10 +3,10 @@ This project is a simple push mode publisher for esgf data-nodes.
 Command Line Arguments
 ----------------------
 
-Example:  esgpost --schema cmip5 --masterid testId --instance_id testId --file_type Dataset
+Example:  esgpost --schema cmip5 --master_id testId --instance_id testId --file_type Dataset
           --dataset_id TestDatasetId --id TestId --version 1 --publish
 
---schema, --masterid, --instance_id, --file_type, --dataset_id, --id, --version :
+--schema, --master_id, --instance_id, --file_type, --dataset_id, --id, --version :
     (required) Specifies mandatory metadata that cannot be harvested directly from netCDF files.
 
 --publish / --unpublish :
