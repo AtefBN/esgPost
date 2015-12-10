@@ -1,4 +1,3 @@
-import glob
 import os
 
 from lxml import etree
@@ -34,27 +33,30 @@ def extract_from_file(mandatory_options, path, temp_dir):
 def scan_directory(my_path, xml_page):
     """
     Given a dataset parent path, this method explores one level
-    of depth and converts the netcdf files found into a descriptive
-    XML file with
+    of depth and harvests the metadata of the netcdf files found.
+    The result is a descriptive XML file.
     :param my_path: String
     :return: modified xml descriptive page
     """
     os.chdir(my_path)
-    for file_name in glob.glob("*.nc"):
-        file_object = NetCDF.NetCDFFile(my_path + "/" + file_name, "r")
-        global_att_list = dir(file_object)
-        # Extracting attributes
-        for global_attr in global_att_list:
-            global_attr_value = getattr(file_object, global_attr)
-            if global_attr != "project_id":
-                new_elt = etree.SubElement(xml_page, 'field', name=global_attr)
-            else:
-                new_elt = etree.SubElement(xml_page, 'field', name="project")
-            if isinstance(global_attr_value, basestring):
-                new_elt.text = global_attr_value
-        all_var_names = file_object.variables.keys()
-        for var in all_var_names:
-            new_elt = etree.SubElement(xml_page, 'field', name="variable")
-            new_elt.text = var
-        file_object.close()
+    file_list = os.listdir(my_path)
+    for file_name in file_list:
+        # in case the directory is a dataset of netcdf files.
+        if ".nc" in file_name:
+            file_object = NetCDF.NetCDFFile(my_path + "/" + file_name, "r")
+            global_att_list = dir(file_object)
+            # Extracting attributes
+            for global_attr in global_att_list:
+                global_attr_value = getattr(file_object, global_attr)
+                if global_attr != "project_id":
+                    new_elt = etree.SubElement(xml_page, 'field', name=global_attr)
+                else:
+                    new_elt = etree.SubElement(xml_page, 'field', name="project")
+                if isinstance(global_attr_value, basestring):
+                    new_elt.text = global_attr_value
+            all_var_names = file_object.variables.keys()
+            for var in all_var_names:
+                new_elt = etree.SubElement(xml_page, 'field', name="variable")
+                new_elt.text = var
+            file_object.close()
     return xml_page

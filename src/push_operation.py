@@ -35,24 +35,22 @@ def main():
     path = '/home/abennasser/'
     operation = PUBLISH_OP
     mapfile = None
+    result_path = None
     try:
-        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "masterid=", "instance_id=", "file_type=",
-                                                   "dataset_id=", "id=", "--path", "version=", "publish", "unpublish",
+        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "master_id=", "instance_id=", "file_type=",
+                                                   "dataset_id=", "id=", "path=", "version=", "publish", "unpublish",
                                                    "mapfile="])
-
     except getopt.error:
         print sys.exc_value
         print usage
         sys.exit(0)
     for o, a in args:
-        if o == "-v":
-            verbose = True
-        elif o in ("-h", "--help"):
+        if o in ("-h", "--help"):
             print(usage)
             sys.exit()
         elif o in ("-s", "--schema"):
             mandatory_options_dict['schema'] = a
-        elif o in ("-m", "--masterid"):
+        elif o in ("-m", "--master_id"):
             mandatory_options_dict['master_id'] = a
         elif o == "--instance_id":
             mandatory_options_dict['instance_id'] = a
