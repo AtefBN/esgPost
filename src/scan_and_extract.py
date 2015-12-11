@@ -16,8 +16,11 @@ def extract_from_file(mandatory_options, path, temp_dir):
     result_path = temp_dir
     # Filling up the mandatory options from dictionary
     # and printing them into an XML file
+    mandatory_options['dataset_id'], mandatory_options['master_id'] = extract_dataset_id(path,
+                                                                                         file_name='cmip5.output1.BCC.bcc-csm1-1.decadal2000.3hr.atmos.3hr.r1i1p1.v1.'
+                                                                                                   'rsdsdiff_3hr_bcc-csm1-1_decadal2000_r1i1p1_200101010130-201512312230.nc')
+
     for key, value in mandatory_options.iteritems():
-        print("processing...", key, value)
         new_elt = etree.SubElement(page, 'field', name=key)
         new_elt.text = value
     # Scanning path for netcdf files
@@ -60,3 +63,14 @@ def scan_directory(my_path, xml_page):
                 new_elt.text = var
             file_object.close()
     return xml_page
+
+
+def extract_dataset_id(path, file_name):
+    dataset_id = ''
+    for c in path:
+        if c != '/':
+            dataset_id += c
+        else:
+            dataset_id += '.'
+    master_id = dataset_id + '|' + file_name
+    return dataset_id, master_id

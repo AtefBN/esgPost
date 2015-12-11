@@ -37,7 +37,7 @@ def main():
     mapfile = None
     result_path = None
     try:
-        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "master_id=", "instance_id=", "file_type=",
+        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "instance_id=", "file_type=",
                                                    "dataset_id=", "id=", "path=", "version=", "publish", "unpublish",
                                                    "mapfile="])
     except getopt.error:
@@ -50,14 +50,10 @@ def main():
             sys.exit()
         elif o in ("-s", "--schema"):
             mandatory_options_dict['schema'] = a
-        elif o in ("-m", "--master_id"):
-            mandatory_options_dict['master_id'] = a
         elif o == "--instance_id":
             mandatory_options_dict['instance_id'] = a
         elif o == "--file_type":
             mandatory_options_dict['type'] = a
-        elif o == "--dataset_id":
-            mandatory_options_dict['dataset_id'] = a
         elif o == "--version":
             mandatory_options_dict['version'] = a
         elif o == "--id":
@@ -74,9 +70,9 @@ def main():
             assert False, "unhandled option"
     # Result path variable contains the path of the generated
     # XML descriptor that will be pushed to solr for indexation
-    if operation == "ws_publish":
+    if operation == PUBLISH_OP:
         result_path = extract_from_file(mandatory_options_dict, path, temp_dir)
-    elif operation == "ws_unpublish":
+    elif operation == UNPUBLISH_OP:
         result_path = mapfile
     else:
         print("Please specify the operation.")
