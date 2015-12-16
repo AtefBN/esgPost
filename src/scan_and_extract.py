@@ -10,16 +10,19 @@ def extract_from_file(mandatory_options, path, temp_dir):
     It takes into consideration two types of params: mandatory params and harvested params.
     The mandatory params are fed through the ini file and/or options.
     The harvested data is found after exploration of the netcdf files exposed.
+    :param mandatory_options: Dictionary of mandatory fields.
+    :param path: String indicating path of dataset.
+    :param temp_dir: String indicating path of the directory where the xml file will be written.
+    :return: result_path : String indicating where the xml file is located.
     """
     page = etree.Element('doc')
     doc = etree.ElementTree(page)
     result_path = temp_dir
     # Filling up the mandatory options from dictionary
     # and printing them into an XML file
-    mandatory_options['dataset_id'], mandatory_options['master_id'] = extract_dataset_id(path,
-                                                                                         file_name='cmip5.output1.BCC.bcc-csm1-1.decadal2000.3hr.atmos.3hr.r1i1p1.v1.'
-                                                                                                   'rsdsdiff_3hr_bcc-csm1-1_decadal2000_r1i1p1_200101010130-201512312230.nc')
-
+    mandatory_options['dataset_id'], mandatory_options['master_id'] = \
+        extract_dataset_id(path, file_name='cmip5.output1.BCC.bcc-csm1-1.decadal2000.3hr.atmos.3hr.r1i1p1.v1.'
+                                           'rsdsdiff_3hr_bcc-csm1-1_decadal2000_r1i1p1_200101010130-201512312230.nc')
     for key, value in mandatory_options.iteritems():
         new_elt = etree.SubElement(page, 'field', name=key)
         new_elt.text = value
@@ -39,7 +42,7 @@ def scan_directory(my_path, xml_page):
     of depth and harvests the metadata of the netcdf files found.
     The result is a descriptive XML file.
     :param my_path: String
-    :return: modified xml descriptive page
+    :return: modified xml descriptive page ready to be pushed to solr.
     """
     os.chdir(my_path)
     file_list = os.listdir(my_path)
@@ -66,6 +69,13 @@ def scan_directory(my_path, xml_page):
 
 
 def extract_dataset_id(path, file_name):
+    """
+    This method is used to automatically extract the dataset's name given a DRS standardized path to the said
+    dataset.
+    :param path: String (path to the dataset files)
+    :param file_name: (filename used to generate the master_id)
+    :return: automatically generated dataset_id & master_id
+    """
     dataset_id = ''
     for c in path:
         if c != '/':

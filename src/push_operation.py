@@ -4,6 +4,7 @@ import ConfigParser
 
 from scan_and_extract import extract_from_file
 from ws_curl import index
+from utils import *
 
 usage = """
 schema
@@ -53,19 +54,22 @@ def main():
         elif o == "--instance_id":
             mandatory_options_dict['instance_id'] = a
         elif o == "--file_type":
-            mandatory_options_dict['type'] = a
+            if check_version(a):
+                mandatory_options_dict['type'] = a
         elif o == "--version":
             mandatory_options_dict['version'] = a
         elif o == "--id":
             mandatory_options_dict['id'] = a
         elif o == "--path":
-            mandatory_options_dict['path'] = a
+            if check_path(path):
+                mandatory_options_dict['path'] = a
         elif o == "--unpublish":
             operation = UNPUBLISH_OP
         elif o == "--publish":
             operation = PUBLISH_OP
         elif o == "--mapfile":
-            mapfile = a
+            if check_path(a):
+                mapfile = a
         else:
             assert False, "unhandled option"
     # Result path variable contains the path of the generated
