@@ -3,6 +3,15 @@ from distutils.core import setup
 setup script to be used to check the environment and deploy to nodes.
 """
 
+
+def check_versions():
+      """
+      Checks that the machine on which installation occurs has the required libs and versions
+      :return: success or failure message
+      """
+      return None
+
+
 setup(name="esgPost",
       version="1.0",
       description="A push mode publisher for ESGF nodes",
