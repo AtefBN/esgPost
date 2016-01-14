@@ -2,17 +2,18 @@ import getopt
 import sys
 import ConfigParser
 
-from scan_and_extract import extract_from_file
+from scan_and_extract import extract_metadata
 from ws_curl import index
 from utils import *
+from models import *
 
 usage = """
-schema
+schema : The schema under which the files are to published/unpublished
+path : The path to the netCDF file/files (directory containing many files) you wish to publish/unpublishe
 file_type : Dataset or file
-version : Select the version of the file to be published
-unpublish/publish : Select either publish or unpublish. But exclusively one at the time. Otherwise the algorithm will select the
-latest input.
-mapfile : precise the location of the already generated mapfile of the dataset you wish to unpublish.
+vers : The vers of the file to be published
+unpublish/publish : Select either publish or unpublish. But exclusively one at the time. Otherwise the algorithm will
+select the latest input.
 """
 
 # Retrieving key values from ini file.
@@ -20,25 +21,27 @@ config = ConfigParser.ConfigParser()
 config.read('test.ini')
 cert_file = config.get('generic', 'certificate_file')
 header = config.get('generic', 'header')
-temp_dir = config.get('generic', 'temp_dir')
+output_dir = config.get('generic', 'output_dir')
 index_node = config.get('generic', 'index_node')
 data_node = config.get('generic', 'data_node')
 ws_post_url = config.get('generic', 'ws_publish')
-PUBLISH_OP = "ws_publish"
-UNPUBLISH_OP = "ws_unpublish"
-version = 1
+PUBLISH_OP = 'ws_publish'
+UNPUBLISH_OP = 'ws_unpublish'
+# Create the datanode options with the appropriate options
+node_instance = Node(data_node, index_node, cert_file, header)
 
 
 def main():
     argv = sys.argv[1:]
-    mandatory_options_dict = {}
-    path = 'home/esg-user/'
+    fields_dictionary = {}
+    path = ''
     operation = PUBLISH_OP
-    mapfile = None
-    result_path = None
+    output_path = None
+    # Start harvesting user input.
+    # TODO add test on compulsory options combinations.(version, path file_type are mandatory)
     try:
-        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "file_type=", "path=", "version=", "publish",
-                                                   "unpublish", "mapfile="])
+        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "file_type=", "path=", "vers=", "publish",
+                                                   "unpublish"])
     except getopt.error:
         print sys.exc_value
         print usage
@@ -48,40 +51,44 @@ def main():
             print(usage)
             sys.exit()
         elif o in ("-s", "--schema"):
-            mandatory_options_dict['schema'] = a
+            fields_dictionary['schema'] = a
         elif o == "--file_type":
             if check_version(a):
-                mandatory_options_dict['type'] = a
-        elif o == "--version":
-            mandatory_options_dict['version'] = a
+                fields_dictionary['type'] = a
+                file_type = a
+        elif o == "--vers":
+            fields_dictionary['vers'] = a
             vers = a
         elif o == "--path":
-            test_path, isFile, isDir = check_path(a)
-            if test_path:
-                mandatory_options_dict['path'] = a
+            is_file, valid_path = check_path(a)
+            if valid_path:
+                # fields_dictionary['path'] = a
+                path = a
         elif o == "--unpublish":
             operation = UNPUBLISH_OP
         elif o == "--publish":
             operation = PUBLISH_OP
-        # TODO change the mapfile variable name.
-        elif o == "--mapfile":
-            test_path, isFile, isDir = check_path(a)
-            if test_path:
-                mapfile = a
         else:
             assert False, "unhandled option"
-    # Result path variable contains the path of the generated
-    # XML descriptor that will be pushed to solr for indexation
+    # Based on input create the Dataset that will host the netCDF files as well as the node_instance.
+    # The none and empty listsvalues are fillers for coming attributes of the dataset,
+    # namely attributes coming from files.
+
+    dataset_instance = Dataset(path, file_type, vers, is_file, None, [], [], node_instance)
+
+    # Output_path variable contains the path of the generated
+    # XML records that will be indexed in Solr.
+    # Test the operation intended by the user from the input.
     if operation == PUBLISH_OP:
-        result_path, doc = extract_from_file(mandatory_options_dict, path, temp_dir, index_node, data_node, vers,
-                                             isFile, isDir)
+        output_path, doc = extract_metadata(fields_dictionary, path, output_dir, dataset_instance, node_instance)
     elif operation == UNPUBLISH_OP:
-        result_path = mapfile
+        output_path = path
     else:
-        print("Please specify the operation.")
-    # This url depends on the type of operation chosen via the options.
-    URL = config.get('generic', operation)
-    index(result_path, doc, cert_file, header, URL)
+        print("Please specify the operation intended.")
+
+    # This url depends on the type of operation chosen by the user through the initial input.
+    operation_url = config.get('generic', operation)
+    index(output_path, doc, cert_file, header, operation_url)
 
 
 if __name__ == "__main__":

@@ -7,12 +7,12 @@ Example:
 Publish
 esgpost --schema cmip5 --file_type Dataset --version 1 --publish
 Unpublish
-esgpost --schema cmip5 --file_type Dataset --version 1 --unpublish --mapfile test_file.xml
+esgpost --schema cmip5 --file_type Dataset --version 1 --unpublish --record test_file.xml
 
 --schema, --file_type, --version :
     (required) Specifies mandatory metadata that cannot be harvested directly from netCDF files.
 
 --publish / --unpublish :
     (required) Specifies the type of action the user wishes to accomplish.
-    PS: In the case of unpublish --mapfile is used to specify the path of the mapfile describing
+    PS: In the case of unpublish --record is used to specify the path of the record describing
     the data to be unpublished.

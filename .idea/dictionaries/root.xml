@@ -2,8 +2,10 @@
   <dictionary name="root">
     <words>
       <w>cmip</w>
+      <w>datanode</w>
       <w>esgpost</w>
       <w>filenames</w>
+      <w>fileserver</w>
     </words>
   </dictionary>
 </component>

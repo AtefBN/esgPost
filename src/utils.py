@@ -1,6 +1,6 @@
 import os
 import re
-
+from exceptions import *
 dot = '.'
 pipe = '|'
 slash = '/'
@@ -8,44 +8,62 @@ slash = '/'
 
 def check_version(v):
     """
-    :param v: version input
+    :param v: vers input
     :return: Boolean.
     """
     try:
         return True
     except ValueError as msg:
-        return False
+        raise InvalidVersionNumber
 
 
 def check_path(path):
     """
     Checks whether the input path is a valid path to a directory or file or not
     Reinforced with regex and os.path
+    The couple booleans (is_file, valid_path) help determine 3 states : the path is a file, the path is a directory
+    or the path is not valid. (True, True)=file, (False, True)=directory, (False, False)=Not a valid path.
     :param path: String
-    :return: Boolean.
+    :return: Boolean couple.
     """
-    isFile, isDir = False
+    # This variable supposes the path is not a file.
+    # It could be either a directory or not a valid path at all.
+    is_file = False
     check_file = re.compile("^(\/+.{0,}){0,}\.\w{1,}$")
     check_directory = re.compile("^(\/+.{0,}){0,}$")
     print(check_file.match(path), check_directory.match(path))
     if check_file.match(path):
-        result = os.path.isfile(path)
-        isFile = True
+        valid_path = os.path.isfile(path)
+        is_file = True
     elif check_directory.match(path):
-        result = os.path.isdir(path)
-        isDir = True
+        valid_path = os.path.isdir(path)
+        os.chdir(path)
+        file_list = os.listdir(path)
+        number_of_files = 0
+        for file_name in file_list:
+            if '.nc' in file_name:
+                number_of_files += 1
+        if number_of_files == 0:
+            raise NoNetcdfFilesInDirectoryException
+        elif number_of_files == 1:
+            is_file = True
+            # Adding the filename to the path to get a file instead of a directory.
+            if path.endswith(slash):
+                path += file_name
+            else:
+                path += slash + file_name
     else:
-        result = False
-    return result
+        raise InvalidPathException
+    return is_file, valid_path
 
 
-def extract_ids(directory, file_name, version, data_node, isFile, isDir):
+def extract_ids(directory, file_name, version, data_node, is_file):
     """
-    This method is used to automatically extract the different ids based on the path, version and filenames.
+    This method is used to automatically extract the different ids based on the path, vers and filenames.
 
     :param directory : String (path to the dataset files, this must be a directory not a file)
     :param file_name : list of String (filename list existing under the path)
-    :param version : String (version input)
+    :param version : String (vers input)
     :return: 3-tuple of String (automatically generated dataset_id, master_id and DRS_id)
     """
     # Note that the path if this method is solicited is already tested and is a valid path.
@@ -53,7 +71,7 @@ def extract_ids(directory, file_name, version, data_node, isFile, isDir):
 
     # DRS_id seems to be the base id.
     # All the other ids can be built from it.
-    # Hence I used it as a buffer.
+    # Hence I used it as a buffer and base_id.
     drs_id = ''
 
     for index, c in enumerate(directory):
@@ -75,13 +93,4 @@ def extract_ids(directory, file_name, version, data_node, isFile, isDir):
     return drs_id, dataset_id, master_id, id, instance_id
 
 
-def extract_file_name(path):
-    """
-    This function is used to extract the file_name from the path if the path is a file path.
-    The directory or file test is performed elsewhere.
-    :param path: string
-    :return: directory, filename (string couple)
-    """
-    # The directory is generated from the path - filename.
-    filename = os.path.basename(path)
-    return filename, path.replace(filename, '')
+
