@@ -40,8 +40,7 @@ def main():
     # Start harvesting user input.
     # TODO add test on compulsory options combinations.(version, path file_type are mandatory)
     try:
-        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "file_type=", "path=", "vers=", "publish",
-                                                   "unpublish"])
+        args, last_args = getopt.getopt(argv, "", ["help", "schema=", "path=", "vers=", "publish", "unpublish"])
     except getopt.error:
         print sys.exc_value
         print usage
@@ -51,18 +50,12 @@ def main():
             print(usage)
             sys.exit()
         elif o in ("-s", "--schema"):
-            fields_dictionary['schema'] = a
-        elif o == "--file_type":
-            if check_version(a):
-                fields_dictionary['type'] = a
-                file_type = a
+            schema = a
         elif o == "--vers":
-            fields_dictionary['vers'] = a
             vers = a
         elif o == "--path":
             is_file, valid_path = check_path(a)
             if valid_path:
-                # fields_dictionary['path'] = a
                 path = a
         elif o == "--unpublish":
             operation = UNPUBLISH_OP
@@ -74,7 +67,7 @@ def main():
     # The empty lists are fillers for coming attributes of the dataset,
     # namely attributes coming from files.
     session = Session(operation)
-    dataset_instance = Dataset(path, file_type, vers, is_file, [], {}, node_instance)
+    dataset_instance = Dataset(path, schema, vers, is_file, [], {}, node_instance)
     # Output_path variable contains the path of the generated
     # XML records that will be indexed in Solr.
     # Test the operation intended by the user from the input.

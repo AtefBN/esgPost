@@ -16,14 +16,14 @@ class Dataset(object):
         netCDFFiles
     """
 
-    def __init__(self, path, file_type, version, is_file, netcdf_files, variables, node):
+    def __init__(self, path, schema, version, is_file, netcdf_files, variables, node):
         self.type = 'Dataset'
+        self.schema = schema
         self.path = path
         self.version = version
         self.is_file = is_file
         if self.is_file:
             self.file_name, self.path = self.extract_file_name()
-        self.file_type = file_type
         self.number_of_files = 0
         self.netCDFFiles = netcdf_files
         self.variables = variables
@@ -83,8 +83,8 @@ class Dataset(object):
         # Building the master and dataset id out of the base id.
         id_dictionary = dict()
         id_dictionary['master_id'] = base_id
-        id_dictionary['id'] = base_id + version_str + self.version + pipe + node.data_node
-        id_dictionary['instance_id'] = base_id + version_str + self.version
+        id_dictionary['id'] = base_id + dot + version_str + self.version + pipe + node.data_node
+        id_dictionary['instance_id'] = base_id + dot + version_str + self.version
         id_dictionary['drs_id'] = base_id
         return id_dictionary
 
@@ -212,8 +212,8 @@ class NetCDFFile(object):
         id_dictionary = dict()
         id_dictionary['dataset_id'] = dataset.id_dictionary['id']
         id_dictionary['drs_id'] = dataset.id_dictionary['drs_id']
-        id_dictionary['id'] = dataset.id_dictionary['drs_id'] + dot + version_str + dataset.version + self.file_name
-        id_dictionary['instance_id'] = dataset.id_dictionary['drs_id'] + version_str + dataset.version + self.file_name
+        id_dictionary['id'] = dataset.id_dictionary['drs_id'] + dot + version_str + dataset.version + dot +self.file_name
+        id_dictionary['instance_id'] = dataset.id_dictionary['drs_id'] + dot + version_str + dataset.version + dot +self.file_name
         return id_dictionary
 
     def generate_record(self, open_netcdf_file, dataset, node):
