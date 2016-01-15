@@ -4,7 +4,9 @@ from exceptions import *
 dot = '.'
 pipe = '|'
 slash = '/'
-
+xml_extension = dot+'xml'
+DRS = 'drs_id'
+version_str = 'v_'
 
 def check_version(v):
     """
@@ -87,9 +89,9 @@ def extract_ids(directory, file_name, version, data_node, is_file):
             drs_id += dot
     # Building the master and dataset id out of the base id.
     master_id = drs_id + dot + file_name
-    dataset_id = drs_id + dot + version + pipe + data_node
-    id = drs_id + file_name + version
-    instance_id = drs_id + version
+    dataset_id = drs_id + dot + version_str + version + pipe + data_node
+    id = drs_id + file_name + version_str + version
+    instance_id = drs_id + version_str + version
     return drs_id, dataset_id, master_id, id, instance_id
 
 

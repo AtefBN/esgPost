@@ -18,7 +18,7 @@ select the latest input.
 
 # Retrieving key values from ini file.
 config = ConfigParser.ConfigParser()
-config.read('test.ini')
+config.read('/root/PycharmProjects/esgPost/src/test.ini')
 cert_file = config.get('generic', 'certificate_file')
 header = config.get('generic', 'header')
 output_dir = config.get('generic', 'output_dir')
@@ -71,24 +71,25 @@ def main():
         else:
             assert False, "unhandled option"
     # Based on input create the Dataset that will host the netCDF files as well as the node_instance.
-    # The none and empty listsvalues are fillers for coming attributes of the dataset,
+    # The empty lists are fillers for coming attributes of the dataset,
     # namely attributes coming from files.
-
-    dataset_instance = Dataset(path, file_type, vers, is_file, None, [], [], node_instance)
-
+    session = Session(operation)
+    dataset_instance = Dataset(path, file_type, vers, is_file, [], {}, node_instance)
     # Output_path variable contains the path of the generated
     # XML records that will be indexed in Solr.
     # Test the operation intended by the user from the input.
     if operation == PUBLISH_OP:
-        output_path, doc = extract_metadata(fields_dictionary, path, output_dir, dataset_instance, node_instance)
+        output_path = extract_metadata(fields_dictionary, dataset_instance.path, output_dir, dataset_instance,
+                                       node_instance)
+        print(output_path)
     elif operation == UNPUBLISH_OP:
         output_path = path
     else:
         print("Please specify the operation intended.")
 
     # This url depends on the type of operation chosen by the user through the initial input.
-    operation_url = config.get('generic', operation)
-    index(output_path, doc, cert_file, header, operation_url)
+    operation_url = config.get('generic', session.operation)
+    index(output_path, cert_file, header, operation_url)
 
 
 if __name__ == "__main__":

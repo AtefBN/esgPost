@@ -4,6 +4,8 @@ from lxml import etree
 
 from utils import *
 
+from pprint import pprint
+
 from models import *
 
 
@@ -19,8 +21,8 @@ def extract_metadata(fields_dictionary, path, output_dir, dataset, node):
     :return: output_path : String indicating where the xml file is located.
     """
 
-    page = etree.Element('doc')
-    doc = etree.ElementTree(page)
+    # page = etree.Element('doc')
+    # doc = etree.ElementTree(page)
     # WTF is this line of code ?
     output_path = output_dir
 
@@ -30,11 +32,11 @@ def extract_metadata(fields_dictionary, path, output_dir, dataset, node):
     #    fields_dictionary['master_id'], fields_dictionary['id'], \
     #    fields_dictionary['instance_id'] = extract_ids(dataset.path, dataset.file_name, dataset.vers, \
     #    node.data_node,dataset.is_file)
-    fields_dictionary['index_node'] = node.index_node
-    fields_dictionary['data_node'] = node.data_node
-    for key, value in fields_dictionary.iteritems():
-        new_elt = etree.SubElement(page, 'field', name=key)
-        new_elt.text = value
+    # fields_dictionary['index_node'] = node.index_node
+    # fields_dictionary['data_node'] = node.data_node
+    # for key, value in fields_dictionary.iteritems():
+    #    new_elt = etree.SubElement(page, 'field', name=key)
+    #    new_elt.text = value
     # Adding the url to the fileServer using the output_path as
     # server path to the posted file.
 
@@ -44,15 +46,25 @@ def extract_metadata(fields_dictionary, path, output_dir, dataset, node):
 
     # Scanning path for netcdf files
     # and filling up XML descriptive file
-    scan_directory(path, page)
-    out_file = open(output_path, 'w')
-    doc.write(out_file)
+    scan_directory(dataset, node)
+    # Preparing the dataset's folder:
+    dataset_folder = output_path + slash + dataset.id_dictionary[DRS]
+    if not os.path.exists(dataset_folder):
+        os.makedirs(dataset_folder)
+    # Writing records in the output directory:
+    out_file = open(dataset_folder + slash + "dataset" + dot + dataset.id_dictionary[DRS] + xml_extension, 'w')
+    dataset.record.write(out_file, pretty_print=True)
+    # Writing each file record in the appropriate record file:
+    for netcdf_file in dataset.netCDFFiles:
+        out_file = open(dataset_folder + slash + netcdf_file.id_dictionary[DRS] + dot + netcdf_file.file_name + xml_extension, 'w')
+        netcdf_file.record.write(out_file, pretty_print=True)
 
-    print("Successfully generated records and wrote in the file " + output_path)
-    return output_path, doc
+    print("Successfully generated records and wrote in the parent output "
+          "directory " + output_path + " under the dataset folder " + dataset_folder)
+    return dataset_folder
 
 
-def scan_directory(path, dataset, node):
+def scan_directory(dataset, node):
     """
     Given a dataset parent path, this method explores one level
     of depth and harvests the metadata of the netcdf files found.
@@ -65,61 +77,40 @@ def scan_directory(path, dataset, node):
         dataset.number_of_files = 1
         # the two none value are fillers for later attributes resulting from exploring the netcdf file.
         netcdf_file = scan_single_netcdf_file(dataset.path, dataset.file_name, dataset, node)
-        edit_file_record(netcdf_file)
-        edit_dataset_record(dataset)
+        dataset.generate_dataset_record()
     # in case multiple files are under within the dataset:
     else:
-        os.chdir(path)
-        file_list = os.listdir(path)
+        os.chdir(dataset.path)
+        file_list = os.listdir(dataset.path)
         for file_name in file_list:
-            netcdf_file = scan_single_netcdf_file(dataset.path, dataset.file_name, dataset, node)
+            netcdf_file = scan_single_netcdf_file(dataset.path, file_name, dataset, node)
             dataset.number_of_files += 1
-            edit_file_record(netcdf_file)
-        edit_dataset_record(dataset)
+        dataset.generate_dataset_record(node)
 
 
-def scan_single_netcdf_file(path, file_name, dataset, node):
-    open_file = netCDF4.Dataset(path + '/' + file_name, 'r')
-    netcdf_file = NetCDFFile(path, open_file.ncattrs(), open_file.variables.keys(), dataset, node)
-    # Add the single file to the list of netCDF files of the dataset.
-    dataset.netCDFFiles.append(netcdf_file)
+def scan_single_netcdf_file(path, file_name, dataset_instance, node_instance):
+    """
+    This method scans a single netcdf file, generates the XML record and returns the netcdf file object,
+    with record attribute filled.
+    :param path : String path to file
+    :param file_name : String the file name
+    :param dataset_instance : a dataset_instance instance in which this file belongs
+    :param node_instance : the node_instance instance
+
+    :return netcdf file object instance
+    """
+    if path.endswith(slash):
+        path_to_file = path + file_name
+    else:
+        path_to_file = path + slash + file_name
+    open_netcdf_file = netCDF4.Dataset(path_to_file, 'r')
+    # None value corresponds to the xml record for this file, it will be generated afterwards.
+    open_netcdf_file.ncattrs()
+    open_netcdf_file.variables.keys()
+    netcdf_file = NetCDFFile(path_to_file, open_netcdf_file.variables.keys(), open_netcdf_file.ncattrs(), dataset_instance, node_instance)
+    # Generating the record.
+    netcdf_file.generate_record(open_netcdf_file, dataset_instance, node_instance)
+    # Add the single file to the list of netCDF files of the dataset_instance.
+    dataset_instance.netCDFFiles.append(netcdf_file)
     return netcdf_file
 
-
-def edit_file_record(netcdf_file):
-    pass
-
-
-def edit_dataset_record(dataset_instance):
-    pass
-
-"""
-    if os.path.isdir(path):
-        os.chdir(path)
-        file_list = os.listdir(path)
-    else:
-        # create one element list.
-        file_list = [path]
-    for netcdf_file_name in file_list:
-        # in case the directory is a dataset of netcdf files.
-        if ".nc" in netcdf_file_name:
-            netcdf_file = netCDF4.Dataset(path + "/" + netcdf_file_name, "r")
-            global_att_list = dir(netcdf_file)
-            # Extracting attributes
-            #  Special treatment for the project_id the key in the
-            # netCDF file is different from the project's schema.
-            for global_attr in global_att_list:
-                global_attr_value = getattr(netcdf_file, global_attr)
-                if global_attr != "project_id":
-                    new_elt = etree.SubElement(xml_page, 'field', name=global_attr)
-                else:
-                    new_elt = etree.SubElement(xml_page, 'field', name="project")
-                if isinstance(global_attr_value, basestring):
-                    new_elt.text = global_attr_value
-            all_var_names = netcdf_file.variables.keys()
-            for var in all_var_names:
-                new_elt = etree.SubElement(xml_page, 'field', name="variable")
-                new_elt.text = var
-            netcdf_file.close()
-    return xml_page
-    """

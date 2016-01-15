@@ -1,7 +1,6 @@
 import os
-slash = '/'
-dot = '.'
-pipe = '|'
+from lxml import etree
+from utils import *
 
 
 class Dataset(object):
@@ -17,18 +16,30 @@ class Dataset(object):
         netCDFFiles
     """
 
-    def __init__(self, path, file_type, version, is_file, number_of_files, netcdf_files, variables, node):
+    def __init__(self, path, file_type, version, is_file, netcdf_files, variables, node):
+        self.type = 'Dataset'
         self.path = path
         self.version = version
         self.is_file = is_file
         if self.is_file:
             self.file_name, self.path = self.extract_file_name()
         self.file_type = file_type
-        self.number_of_files = number_of_files
+        self.number_of_files = 0
         self.netCDFFiles = netcdf_files
         self.variables = variables
         # Initializing Ids
-        self.drs, self.master_id, self.instance_id, self.id = self.extract_ids(node)
+        self.id_dictionary = self.extract_ids(node)
+        self.global_attributes = {}
+        self.variables = None
+        self.record = None
+        self.node_info = self.get_node_info(node)
+
+    @staticmethod
+    def get_node_info(node):
+        node_info = dict()
+        node_info['data_node'] = node.data_node
+        node_info['index_node'] = node.index_node
+        return node_info
 
     def extract_file_name(self):
         """
@@ -70,11 +81,61 @@ class Dataset(object):
             else:
                 base_id += dot
         # Building the master and dataset id out of the base id.
-        master_id = base_id
-        id = base_id + self.version + pipe + node.data_node
-        instance_id = base_id + self.version
-        drs_id = base_id
-        return drs_id, master_id, instance_id, id
+        id_dictionary = dict()
+        id_dictionary['master_id'] = base_id
+        id_dictionary['id'] = base_id + version_str + self.version + pipe + node.data_node
+        id_dictionary['instance_id'] = base_id + version_str + self.version
+        id_dictionary['drs_id'] = base_id
+        return id_dictionary
+
+    def generate_variables(self):
+        variables_set = set()
+        for netcdf_file in self.netCDFFiles:
+            # replaced by the dictionary structure
+            # for global_attr in netcdf_file.global_attributes:
+            #    global_attr_set.add(global_attr)
+            for variable in netcdf_file.variables:
+                variables_set.add(variable)
+        self.variables = variables_set
+        # Replaced by the dictionary structure
+        # self.global_attributes = global_attr_set
+
+    def generate_dataset_record(self, node):
+        page = etree.Element('doc')
+        doc = etree.ElementTree(page)
+        self.generate_variables()
+
+        # Writing node related information:
+        for key, value in self.node_info.iteritems():
+            new_elt = etree.SubElement(page, 'field', name=key)
+            new_elt.text = value
+
+        # Writing generic attributes of the dataset that require no special treatment
+        # e.g number of files, path, version
+        for key, value in vars(self).iteritems():
+            if key not in ('id_dictionary', 'variables', 'global_attributes', 'record', 'netCDFFiles', 'node_info'):
+                new_elt = etree.SubElement(page, 'field', name=key)
+                new_elt.text = str(value)
+
+        # Writing the identifiers
+        for id_key, id_value in self.id_dictionary.iteritems():
+            new_elt = etree.SubElement(page, 'field', name=id_key)
+            new_elt.text = id_value
+
+        # Getting the global attributes of the different files.
+        for global_attr, attr_value in self.global_attributes.iteritems():
+            if global_attr != "project_id":
+                new_elt = etree.SubElement(page, 'field', name=global_attr)
+                new_elt.text = str(attr_value)
+            else:
+                new_elt = etree.SubElement(page, 'field', name="project")
+                new_elt.text = self.global_attributes['project_id']
+        # Getting the vars from the different files.
+        for var in self.variables:
+            new_elt = etree.SubElement(page, 'field', name="variable")
+            new_elt.text = var
+        # Creating the record for the dataset.
+        self.record = doc
 
 
 class Node(object):
@@ -117,13 +178,15 @@ class NetCDFFile(object):
         extract_file_name(self)
     """
     def __init__(self, path, variables, global_attributes, dataset, node):
+        self.type = 'File'
         self.path = path
-        self.file_name, self.path = self.extract_file_name(self)
+        self.file_name, self.path = self.extract_file_name()
         # dictionary of variables
+        self.record = None
         self.variables = variables
         # dictionary of global attributes
         self.global_attributes = global_attributes
-        self.dataset_id, self.drs_id, self.id, self.instance_id = self.extract_file_ids(self, dataset, node)
+        self.id_dictionary = self.extract_file_ids(dataset, node)
 
     def extract_file_name(self):
         """
@@ -146,9 +209,43 @@ class NetCDFFile(object):
         :param node:
         :return: the different IDs
         """
-        dataset_id = dataset.id
-        drs_id = dataset.drs_id
-        id = drs_id + dot + dataset.version + self.file_name
-        instance_id = drs_id + dataset.version + self.file_name
-        return dataset_id, drs_id, id, instance_id
+        id_dictionary = dict()
+        id_dictionary['dataset_id'] = dataset.id_dictionary['id']
+        id_dictionary['drs_id'] = dataset.id_dictionary['drs_id']
+        id_dictionary['id'] = dataset.id_dictionary['drs_id'] + dot + version_str + dataset.version + self.file_name
+        id_dictionary['instance_id'] = dataset.id_dictionary['drs_id'] + version_str + dataset.version + self.file_name
+        return id_dictionary
 
+    def generate_record(self, open_netcdf_file, dataset, node):
+        page = etree.Element('doc')
+        doc = etree.ElementTree(page)
+
+        # Writing node information
+        for key, value in dataset.node_info.iteritems():
+            new_elt = etree.SubElement(page, 'field', name=key)
+            new_elt.text = value
+
+        # Writing the different ids
+        for id_key, id_value in self.id_dictionary.iteritems():
+            new_elt = etree.SubElement(page, 'field', name=id_key)
+            new_elt.text = id_value
+
+        # Writing the global attributes
+        for global_attr in self.global_attributes:
+            # Getting the value of the attributes.
+            global_attr_value = getattr(open_netcdf_file, str(global_attr))
+            # Updating the dataset global attributes keys and values.
+            if global_attr not in dataset.global_attributes:
+                dataset.global_attributes[global_attr] = global_attr_value
+            if global_attr != "project_id":
+                new_elt = etree.SubElement(page, 'field', name=global_attr)
+            else:
+                new_elt = etree.SubElement(page, 'field', name="project")
+            if isinstance(global_attr_value, basestring):
+                new_elt.text = global_attr_value
+        all_var_names = open_netcdf_file.variables.keys()
+        # Writing the variables.
+        for var in all_var_names:
+            new_elt = etree.SubElement(page, 'field', name="variable")
+            new_elt.text = var
+        self.record = doc
