@@ -77,7 +77,7 @@ def scan_directory(dataset, node):
         dataset.number_of_files = 1
         # the two none value are fillers for later attributes resulting from exploring the netcdf file.
         netcdf_file = scan_single_netcdf_file(dataset.path, dataset.file_name, dataset, node)
-        dataset.generate_dataset_record()
+        dataset.generate_dataset_record(node)
     # in case multiple files are under within the dataset:
     else:
         os.chdir(dataset.path)
