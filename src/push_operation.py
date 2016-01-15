@@ -56,7 +56,7 @@ def main():
         elif o == "--path":
             is_file, valid_path = check_path(a)
             if valid_path:
-                path = a
+                path = valid_path
         elif o == "--unpublish":
             operation = UNPUBLISH_OP
         elif o == "--publish":

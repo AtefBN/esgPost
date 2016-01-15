@@ -54,6 +54,7 @@ def check_path(path):
                 path += file_name
             else:
                 path += slash + file_name
+            valid_path = path
     else:
         raise InvalidPathException
     return is_file, valid_path

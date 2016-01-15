@@ -99,10 +99,12 @@ def scan_single_netcdf_file(path, file_name, dataset_instance, node_instance):
 
     :return netcdf file object instance
     """
+    print("TEST "+path)
     if path.endswith(slash):
         path_to_file = path + file_name
     else:
         path_to_file = path + slash + file_name
+    print("TEST 2 "+path_to_file)
     open_netcdf_file = netCDF4.Dataset(path_to_file, 'r')
     # None value corresponds to the xml record for this file, it will be generated afterwards.
     open_netcdf_file.ncattrs()
