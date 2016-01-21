@@ -18,6 +18,7 @@ def extract_metadata(fields_dictionary, path, output_dir, dataset, node):
     :param fields_dictionary: Dictionary of mandatory fields.
     :param path: String indicating path of dataset.
     :param output_dir: String indicating path of the directory where the xml file will be stored.
+
     :return: output_path : String indicating where the xml file is located.
     """
 
@@ -52,14 +53,17 @@ def extract_metadata(fields_dictionary, path, output_dir, dataset, node):
     if not os.path.exists(dataset_folder):
         os.makedirs(dataset_folder)
     # Writing records in the output directory:
-    out_file = open(dataset_folder + slash + "dataset" + dot + dataset.id_dictionary[DRS] + xml_extension, 'w')
+    out_file = open(dataset_folder + slash + "Dataset" + dot + dataset.id_dictionary[DRS] + xml_extension, 'w')
+    # Writing the dataset main record.
     dataset.record.write(out_file, pretty_print=True)
     # Writing each file record in the appropriate record file:
     for netcdf_file in dataset.netCDFFiles:
-        out_file = open(dataset_folder + slash + netcdf_file.id_dictionary[DRS] + dot + netcdf_file.file_name + xml_extension, 'w')
+        out_file = open(dataset_folder + slash + "File" + dot + netcdf_file.id_dictionary[DRS] + dot +
+                        netcdf_file.file_name + xml_extension, 'w')
+        # Write every netcdf's file appropriate XML record.
         netcdf_file.record.write(out_file, pretty_print=True)
 
-    print("Successfully generated records and wrote in the parent output "
+    print("Successfully generated %s" % str(dataset.number_of_files+1) + " records and wrote in the parent output "
           "directory " + output_path + " under the dataset folder " + dataset_folder)
     return dataset_folder
 
@@ -69,7 +73,9 @@ def scan_directory(dataset, node):
     Given a dataset parent path, this method explores one level
     of depth and harvests the metadata of the netcdf files found.
     The result is a descriptive XML file.
-    :param path: String
+    :param dataset: dataset instance
+    :param node: node instance
+
     :return: modified xml descriptive page ready to be pushed to solr.
     """
     # in case of a single file within the dataset:
@@ -99,12 +105,7 @@ def scan_single_netcdf_file(path, file_name, dataset_instance, node_instance):
 
     :return netcdf file object instance
     """
-    print("TEST "+path)
-    if path.endswith(slash):
-        path_to_file = path + file_name
-    else:
-        path_to_file = path + slash + file_name
-    print("TEST 2 "+path_to_file)
+    path_to_file = os.path.join(path, file_name)
     open_netcdf_file = netCDF4.Dataset(path_to_file, 'r')
     # None value corresponds to the xml record for this file, it will be generated afterwards.
     open_netcdf_file.ncattrs()

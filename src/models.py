@@ -22,6 +22,7 @@ class Dataset(object):
         self.path = path
         self.version = version
         self.is_file = is_file
+        # If the dataset contains, a specific behavior is to be implemented.
         if self.is_file:
             self.file_name, self.path = self.extract_file_name()
         self.number_of_files = 0
@@ -48,6 +49,8 @@ class Dataset(object):
         The directory or file test is performed elsewhere.
         :param self.path: string
         :param self.is_file: Boolean
+
+        :return file_name: string, path: string
         """
         # The directory is generated from the path - filename.
         filename = os.path.basename(self.path)
@@ -60,6 +63,8 @@ class Dataset(object):
         This method is used to automatically extract the different ids based on the path, vers and filenames.
         :param self: a dataset instance
         :param node: a node instance
+
+        :return id_dictionary : dictionary.
         """
         # Note that the path if this method is solicited is already tested and is a valid path.
         # If this method is to be used elsewhere, make sure to test the path via regex or os lib.
@@ -72,7 +77,6 @@ class Dataset(object):
         for index, c in enumerate(self.path):
             # skipping the slashes '/' from start and end of the path string.
             if (self.path.startswith(c) or self.path.endswith(c)) and (index == 0 or index == len(self.path) - 1):
-                print(c)
                 continue
             # building the base which coincides with the DRS id.
             elif c != slash:
@@ -89,6 +93,9 @@ class Dataset(object):
         return id_dictionary
 
     def generate_variables(self):
+        """
+        this function generate the variable list for the dataset from the netCDF file_list.
+        """
         variables_set = set()
         for netcdf_file in self.netCDFFiles:
             # replaced by the dictionary structure
@@ -101,6 +108,9 @@ class Dataset(object):
         # self.global_attributes = global_attr_set
 
     def generate_dataset_record(self, node):
+        """
+        Function responsible for the generation of the dataset XML record.
+        """
         page = etree.Element('doc')
         doc = etree.ElementTree(page)
         self.generate_variables()
@@ -160,8 +170,9 @@ class Session(object):
     Attributes:
         Operation
     """
-    def __init__(self, operation):
+    def __init__(self, operation, ws_url):
         self.operation = operation
+        self.ws_url = ws_url
 
 
 class NetCDFFile(object):
@@ -195,6 +206,8 @@ class NetCDFFile(object):
         The directory or file test is performed elsewhere.
         :param self.path: string
         :param self.is_file: Boolean
+
+        :return file_name: String, path: String
         """
         # The directory is generated from the path - filename.
         filename = os.path.basename(self.path)
@@ -207,7 +220,8 @@ class NetCDFFile(object):
         extracts different IDs from the file, the dataset and the node.
         :param dataset:
         :param node:
-        :return: the different IDs
+
+        :return: id_dictionary: dictionary.
         """
         id_dictionary = dict()
         id_dictionary['dataset_id'] = dataset.id_dictionary['id']
@@ -219,6 +233,10 @@ class NetCDFFile(object):
     def generate_record(self, open_netcdf_file, dataset, node):
         page = etree.Element('doc')
         doc = etree.ElementTree(page)
+        for key, value in vars(self).iteritems():
+            if key not in ('path', 'variables', 'global_attributes', 'dataset', 'node'):
+                new_elt = etree.SubElement(page, 'field', name=key)
+                new_elt.text = str(value)
 
         # Writing node information
         for key, value in dataset.node_info.iteritems():

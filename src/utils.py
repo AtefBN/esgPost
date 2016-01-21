@@ -1,12 +1,19 @@
 import os
 import re
-from exceptions import *
+import subprocess
+from custom_exceptions import *
+
 dot = '.'
 pipe = '|'
 slash = '/'
 xml_extension = dot+'xml'
 DRS = 'drs_id'
 version_str = 'v_'
+open_delete_tag = '<delete><query>'
+id_str = 'id:'
+close_delete_tag = '</query></delete>'
+PUBLISH_OP = 'ws_publish'
+UNPUBLISH_OP = 'ws_unpublish'
 
 def check_version(v):
     """
@@ -45,55 +52,77 @@ def check_path(path):
         for file_name in file_list:
             if '.nc' in file_name:
                 number_of_files += 1
+                # Found a netCDF file, useful if unique.
+                persistent_file_name = file_name
         if number_of_files == 0:
             raise NoNetcdfFilesInDirectoryException
         elif number_of_files == 1:
             is_file = True
             # Adding the filename to the path to get a file instead of a directory.
-            if path.endswith(slash):
-                path += file_name
-            else:
-                path += slash + file_name
-            valid_path = path
+            path = os.path.join(path, persistent_file_name)
     else:
         raise InvalidPathException
-    return is_file, valid_path
+    return is_file, valid_path, path
 
 
-def extract_ids(directory, file_name, version, data_node, is_file):
-    """
-    This method is used to automatically extract the different ids based on the path, vers and filenames.
-
-    :param directory : String (path to the dataset files, this must be a directory not a file)
-    :param file_name : list of String (filename list existing under the path)
-    :param version : String (vers input)
-    :return: 3-tuple of String (automatically generated dataset_id, master_id and DRS_id)
-    """
-    # Note that the path if this method is solicited is already tested and is a valid path.
-    # If this method is to be used elsewhere, make sure to test the path via regex or os lib.
-
-    # DRS_id seems to be the base id.
-    # All the other ids can be built from it.
-    # Hence I used it as a buffer and base_id.
-    drs_id = ''
-
-    for index, c in enumerate(directory):
+def unpublish_id(path, version, node):
+    base_id = ''
+    for index, c in enumerate(path):
         # skipping the slashes '/' from start and end of the path string.
-        if (directory.startswith(c) or directory.endswith(c)) and (index == 0 or index == len(directory) - 1):
-            print(c)
+        if (path.startswith(c) or path.endswith(c)) and (index == 0 or index == len(path) - 1):
             continue
         # building the base which coincides with the DRS id.
         elif c != slash:
-            drs_id += c
+            base_id += c
         # replacing the inner slashes with dots.
         else:
-            drs_id += dot
-    # Building the master and dataset id out of the base id.
-    master_id = drs_id + dot + file_name
-    dataset_id = drs_id + dot + version_str + version + pipe + data_node
-    id = drs_id + file_name + version_str + version
-    instance_id = drs_id + version_str + version
-    return drs_id, dataset_id, master_id, id, instance_id
+            base_id += dot
+    gen_id = open_delete_tag + id_str + base_id + dot + 'v_' + version + pipe + node.data_node + close_delete_tag
+    """
+    this generate an ID like the following:
+    '<delete><query>id:cmip5.test.v1|esgf-dev.dkrz.de</query></delete>'
+
+    """
+    return gen_id
 
 
+def index(output_path, unpub_id, certificate_file, header_form, session):
+    """
+    This method sends a POST request to ESG-Search with generated
+    XML descriptors in order to index data to solr.
+    This might be easier to be done via pycurl, however for the
+    time being we just use a direct curl command.
+    :param output_path: String
+    :param certificate_file : path to the certificate_file
+    :param header
+    :param URL of the webservice.
 
+    :return: Success or failure message: String
+    """
+    # In order for pycurl to effectively send the xml data
+    # it needs to be quoted to skip special characters.
+    if session.operation == PUBLISH_OP:
+        os.chdir(output_path)
+        file_list = os.listdir(output_path)
+        # loop over the records generated
+        for record in file_list:
+            # generate path to each file
+            if output_path.endswith(slash):
+                record_path = output_path + record
+            else:
+                record_path = output_path + slash + record
+            curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
+
+    elif session.operation == UNPUBLISH_OP:
+        curl_query = create_query(certificate_file, unpub_id, header_form, session.ws_url)
+
+    proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    print "Curl output: %s, %s" % (out, err)
+
+
+def create_query(cert, data, header, wsurl):
+    curl_query = "curl --key " + cert + "  --cert " + cert + \
+                         " --verbose -X POST -d @" + data + " --header " + header + \
+                         " " + wsurl
+    return curl_query
