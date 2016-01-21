@@ -3,7 +3,6 @@ import sys
 import ConfigParser
 import shutil
 from scan_and_extract import extract_metadata
-from ws_curl import index
 from utils import *
 from models import *
 from custom_exceptions import *

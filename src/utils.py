@@ -15,6 +15,7 @@ close_delete_tag = '</query></delete>'
 PUBLISH_OP = 'ws_publish'
 UNPUBLISH_OP = 'ws_unpublish'
 
+
 def check_version(v):
     """
     :param v: vers input
@@ -99,8 +100,6 @@ def index(output_path, unpub_id, certificate_file, header_form, session):
 
     :return: Success or failure message: String
     """
-    # In order for pycurl to effectively send the xml data
-    # it needs to be quoted to skip special characters.
     if session.operation == PUBLISH_OP:
         os.chdir(output_path)
         file_list = os.listdir(output_path)
