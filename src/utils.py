@@ -2,6 +2,8 @@ import os
 import re
 import subprocess
 from custom_exceptions import *
+from lxml import etree
+import shutil
 
 dot = '.'
 pipe = '|'
@@ -48,13 +50,14 @@ def check_path(path):
     elif check_directory.match(path):
         valid_path = os.path.isdir(path)
         os.chdir(path)
-        file_list = os.listdir(path)
+        file_list = os.walk(path)
         number_of_files = 0
-        for file_name in file_list:
-            if '.nc' in file_name:
-                number_of_files += 1
-                # Found a netCDF file, useful if unique.
-                persistent_file_name = file_name
+        for triplet in file_list:
+            for file_name in triplet[2]:
+                if file_name.endswith('.nc'):
+                    number_of_files += 1
+                    # Found a netCDF file, useful if unique.
+                    persistent_file_name = file_name
         if number_of_files == 0:
             raise NoNetcdfFilesInDirectoryException
         elif number_of_files == 1:
@@ -78,7 +81,8 @@ def unpublish_id(path, version, node):
         # replacing the inner slashes with dots.
         else:
             base_id += dot
-    gen_id = open_delete_tag + id_str + base_id + dot + 'v_' + version + pipe + node.data_node + close_delete_tag
+    # gen_id = "'"+open_delete_tag + id_str + base_id + dot + 'v_' + version + pipe + node.data_node + close_delete_tag+"'"
+    gen_id = base_id + dot + 'v_' + version + pipe + node.data_node
     """
     this generate an ID like the following:
     '<delete><query>id:cmip5.test.v1|esgf-dev.dkrz.de</query></delete>'
@@ -87,19 +91,27 @@ def unpublish_id(path, version, node):
     return gen_id
 
 
-def index(output_path, unpub_id, certificate_file, header_form, session):
+def create_query(cert, data, header, wsurl):
+    curl_query = "curl --key " + cert + "  --cert " + cert + \
+                         " --verbose -X POST -d @" + data + " --header " + header + \
+                         " " + wsurl
+    return curl_query
+
+
+def index(output_path, unpublish_dir, certificate_file, header_form, session):
     """
     This method sends a POST request to ESG-Search with generated
     XML descriptors in order to index data to solr.
-    This might be easier to be done via pycurl, however for the
+    This might be easier to be done via Pycurl, however for the
     time being we just use a direct curl command.
     :param output_path: String
     :param certificate_file : path to the certificate_file
-    :param header
-    :param URL of the webservice.
+    :param header : contains header information
+    :param session : a Session instance carrying information relative to this instance.
 
     :return: Success or failure message: String
     """
+    # if this is a publishing operation we loop over the xml records and publish them one by one.
     if session.operation == PUBLISH_OP:
         os.chdir(output_path)
         file_list = os.listdir(output_path)
@@ -111,17 +123,14 @@ def index(output_path, unpub_id, certificate_file, header_form, session):
             else:
                 record_path = output_path + slash + record
             curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
-
+    # in case of unpublish operation, we generate the id only.
     elif session.operation == UNPUBLISH_OP:
-        curl_query = create_query(certificate_file, unpub_id, header_form, session.ws_url)
+        curl_query = create_query(certificate_file, unpublish_dir, header_form, session.ws_url)
+        shutil.rmtree(unpublish_dir)
 
+    # Either case, execute query and print outcome.
     proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
-    print "Curl output: %s, %s" % (out, err)
+    print "Curl output: %s, errors: %s" % (out, err)
 
 
-def create_query(cert, data, header, wsurl):
-    curl_query = "curl --key " + cert + "  --cert " + cert + \
-                         " --verbose -X POST -d @" + data + " --header " + header + \
-                         " " + wsurl
-    return curl_query

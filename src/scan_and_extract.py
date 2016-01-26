@@ -86,11 +86,16 @@ def scan_directory(dataset, node):
         dataset.generate_dataset_record(node)
     # in case multiple files are under within the dataset:
     else:
-        os.chdir(dataset.path)
-        file_list = os.listdir(dataset.path)
-        for file_name in file_list:
-            netcdf_file = scan_single_netcdf_file(dataset.path, file_name, dataset, node)
-            dataset.number_of_files += 1
+
+        # os.chdir(dataset.path)
+        file_list = os.walk(dataset.path)
+        for f in file_list:
+            for file_name in f[2]:
+                if file_name.endswith('.nc'):
+                    print('scanning this file...'+file_name)
+                    path_to_file = os.path.join(dataset.path, f[0])
+                    netcdf_file = scan_single_netcdf_file(path_to_file, file_name, dataset, node)
+                    dataset.number_of_files += 1
         dataset.generate_dataset_record(node)
 
 
@@ -106,6 +111,7 @@ def scan_single_netcdf_file(path, file_name, dataset_instance, node_instance):
     :return netcdf file object instance
     """
     path_to_file = os.path.join(path, file_name)
+    print('extracting metadata from this file '+path_to_file)
     open_netcdf_file = netCDF4.Dataset(path_to_file, 'r')
     # None value corresponds to the xml record for this file, it will be generated afterwards.
     open_netcdf_file.ncattrs()
