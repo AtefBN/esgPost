@@ -5,6 +5,7 @@ from custom_exceptions import *
 from lxml import etree
 import shutil
 
+
 dot = '.'
 pipe = '|'
 slash = '/'
@@ -95,6 +96,7 @@ def create_query(cert, data, header, wsurl):
     curl_query = "curl --key " + cert + "  --cert " + cert + \
                          " --verbose -X POST -d @" + data + " --header " + header + \
                          " " + wsurl
+    print('The generated query is ' + curl_query)
     return curl_query
 
 
@@ -112,6 +114,7 @@ def index(output_path, unpublish_dir, certificate_file, header_form, session):
     :return: Success or failure message: String
     """
     # if this is a publishing operation we loop over the xml records and publish them one by one.
+    FNULL = open(os.devnull, 'w')
     if session.operation == PUBLISH_OP:
         os.chdir(output_path)
         file_list = os.listdir(output_path)
@@ -123,14 +126,18 @@ def index(output_path, unpublish_dir, certificate_file, header_form, session):
             else:
                 record_path = output_path + slash + record
             curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
+            proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+            (out, err) = proc.communicate()
+            print "Curl output: %s, errors: %s" % (out, err)
+
     # in case of unpublish operation, we generate the id only.
     elif session.operation == UNPUBLISH_OP:
         curl_query = create_query(certificate_file, unpublish_dir, header_form, session.ws_url)
-        shutil.rmtree(unpublish_dir)
+        # shutil.rmtree(unpublish_dir)
+        proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+        (out, err) = proc.communicate()
+        print "Curl output: %s, errors: %s" % (out, err)
 
     # Either case, execute query and print outcome.
-    proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    print "Curl output: %s, errors: %s" % (out, err)
 
 

@@ -6,7 +6,7 @@ from scan_and_extract import extract_metadata
 from utils import *
 from models import *
 from custom_exceptions import *
-
+from time import time
 usage = """
 schema : The schema under which the files are to published/unpublished
 path : The path to the netCDF file/files (directory containing many files) you wish to publish/unpublishe
@@ -32,9 +32,12 @@ node_instance = Node(data_node, index_node, cert_file, header)
 
 
 def main():
+    tic = time()
+    operation = PUBLISH_OP
     remove_records = False
     gen_id = ''
     output_path = ''
+    unpub_file = ''
     argv = sys.argv[1:]
     fields_dictionary = {}
     # Start harvesting user input.
@@ -94,7 +97,8 @@ def main():
         doc = etree.ElementTree(page)
         new_elt = etree.SubElement(page, 'field', name='id')
         new_elt.text = str(gen_id)
-        out_file = open(unpublish_dir + xml_extension, 'w')
+        unpub_file = os.path.join(unpublish_dir, 'unpub.xml')
+        out_file = open(unpub_file, 'w')
         # Writing the dataset main record.
         doc.write(out_file, pretty_print=True)
 
@@ -103,11 +107,12 @@ def main():
                                   'help for further details.')
 
     # Push the generated records or the generated id.
-    index(output_path, unpublish_dir, cert_file, header, session)
+    index(output_path, unpub_file, cert_file, header, session)
 
     if remove_records and operation == PUBLISH_OP:
             # Go up one level to delete the output directory
             shutil.rmtree(output_path)
-
+    time_elapsed = time() - tic
+    print("The publishing process took " + time_elapsed + ' s')
 if __name__ == "__main__":
     main()

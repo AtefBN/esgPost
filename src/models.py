@@ -234,7 +234,7 @@ class NetCDFFile(object):
         page = etree.Element('doc')
         doc = etree.ElementTree(page)
         for key, value in vars(self).iteritems():
-            if key not in ('path', 'variables', 'global_attributes', 'dataset', 'node'):
+            if key not in ('path', 'variables', 'global_attributes', 'dataset', 'node', 'id_dictionary'):
                 new_elt = etree.SubElement(page, 'field', name=key)
                 new_elt.text = str(value)
 
