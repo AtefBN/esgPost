@@ -17,7 +17,6 @@ def check_versions():
         import netCDF4
         print(etree.LXML_VERSION)
         print(netCDF4.__version__)
-
     except:
         print("Required library not found on machine, please refer to the install manual.")
 
