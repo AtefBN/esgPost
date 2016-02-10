@@ -4,7 +4,7 @@ import netCDF4
 from src.models.models import *
 
 
-def extract_metadata(output_dir, dataset, node):
+def extract_metadata(output_dir, dataset, node, drs_dict):
     """
     Fills up the XML file to be indexed in solr via PUSH operation.
     It takes into consideration two types of params: mandatory params and harvested params.
@@ -18,7 +18,7 @@ def extract_metadata(output_dir, dataset, node):
     """
     # output_path is a string that will be built based on the output directory
     output_path = output_dir
-    scan_directory(dataset, node)
+    scan_directory(dataset, node, drs_dict)
 
     # Preparing the dataset's folder:
     dataset_folder = output_path + SLASH + dataset.id_dictionary[DRS_ID]
@@ -43,7 +43,7 @@ def extract_metadata(output_dir, dataset, node):
     return dataset_folder
 
 
-def scan_directory(dataset, node):
+def scan_directory(dataset, node, drs_dict):
     """
     Given a dataset parent path, this method explores one level
     of depth and harvests the metadata of the netcdf files found.
@@ -54,7 +54,6 @@ def scan_directory(dataset, node):
     :return: modified xml descriptive page ready to be pushed to solr.
     """
     # in case of a single file within the dataset:
-    drs_dict = extract_from_drs(dataset.path)
     if dataset.is_file:
         dataset.number_of_files = 1
         # the two none value are fillers for later attributes resulting from exploring the netcdf file.
@@ -104,6 +103,8 @@ def extract_from_drs(absolute_path):
     :param absolute_path: String contains the absolute path to the dataset.
     :return: dictionary of extracted params
     """
+    # Verifying the path is absolute
+    absolute_path = os.path.abspath(absolute_path)
     # Initializing output dictionary.
     param_dic = dict()
 
@@ -116,7 +117,7 @@ def extract_from_drs(absolute_path):
 
     # Getting the DRS configuration for keys.
     config = ConfigParser.ConfigParser()
-    config.read('misc.ini')
+    config.read(PATH_TO_CONFIG)
     drs_elements_list = config.get('utils-generic', 'DRS_elements_list').split(SLASH)
     list_index = 0
     for drs_key in drs_elements_list:
@@ -128,12 +129,12 @@ def extract_from_drs(absolute_path):
             raise IncompatibleWithDRSConfigPath()
 
     # in case of latest in the version section we get the symbolic link destination.
-    if param_dic[VERSION] == LATEST_STR:
+    if VERSION in param_dic and param_dic[VERSION] == LATEST_STR :
         param_dic[VERSION] = os.path.realpath(absolute_path)
     return param_dic
 
 
-def unpublish_id(path, version, node):
+def unpublish_id(path, node):
     """
     :param path
     :param version
@@ -141,6 +142,8 @@ def unpublish_id(path, version, node):
     this method generate an ID like the following:
     '<delete><query>id:cmip5.test.v1|esgf-dev.dkrz.de</query></delete>'
     """
-    base_id = convert_path_to_drs(path)
-    gen_id = base_id + DOT + VERSION_STR + version + PIPE + node.data_node
+    abs_path = os.path.abspath(path)
+    drs_dict = extract_from_drs(os.path.abspath(abs_path))
+    base_id = convert_path_to_drs(abs_path)
+    gen_id = base_id + DOT + VERSION_STR + drs_dict[VERSION] + PIPE + node.data_node
     return gen_id

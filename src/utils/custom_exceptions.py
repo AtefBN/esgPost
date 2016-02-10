@@ -10,7 +10,7 @@ class InvalidVersionNumber(BasicException):
     pass
 
 
-class NoNetcdfFilesInDirectoryException(BasicException):
+class NoFilesFound(BasicException):
     pass
 
 

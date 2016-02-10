@@ -1,10 +1,9 @@
 import os
-import re
 import subprocess
 from constants import *
 from custom_exceptions import *
-import ConfigParser
 from lxml import etree
+from extract import *
 
 
 def check_version(v):
@@ -18,40 +17,27 @@ def check_version(v):
         raise InvalidVersionNumber
 
 
-def check_path(path):
+def check_path(path, xml_input):
     """
     Checks whether the input path is a valid path to a directory or file or not
     Reinforced with regex and os.path
     The couple booleans (is_file, valid_path) help determine 3 states : the path is a file, the path is a directory
     or the path is not valid. (True, True)=file, (False, True)=directory, (False, False)=Not a valid path.
     :param path: String
+    :param xml_input: boolean indicating whether the publication is via xml or netcdf
     :return: Boolean couple.
     """
     # This variable supposes the path is not a file.
     # It could be either a directory or not a valid path at all.
     is_file = False
-    check_file = re.compile("^(\/+.{0,}){0,}\.\w{1,}$")
-    check_directory = re.compile("^(\/+.{0,}){0,}$")
-    if check_file.match(path):
-        valid_path = os.path.isfile(path)
+    if os.path.isfile(path):
+        valid_path = True
         is_file = True
-    elif check_directory.match(path):
-        valid_path = os.path.isdir(path)
-        os.chdir(path)
-        file_list = os.walk(path)
-        number_of_files = 0
-        for triplet in file_list:
-            for file_name in triplet[2]:
-                if file_name.endswith('.nc'):
-                    number_of_files += 1
-                    # Found a netCDF file, useful if unique.
-                    persistent_file_name = file_name
-        if number_of_files == 0:
-            raise NoNetcdfFilesInDirectoryException
-        elif number_of_files == 1:
+
+    elif os.path.isdir(path):
+        number_of_files, valid_path, path = handle_directory(path, xml_input)
+        if number_of_files == 1:
             is_file = True
-            # Adding the filename to the path to get a file instead of a directory.
-            path = os.path.join(path, persistent_file_name)
     else:
         raise InvalidPathException
     return is_file, valid_path, path
@@ -65,7 +51,7 @@ def create_query(cert, data, header, wsurl):
     return curl_query
 
 
-def index(output_path, unpublish_dir, certificate_file, header_form, session):
+def index(output_path, unpublish_file, certificate_file, header_form, session):
     """
     This method sends a POST request to ESG-Search with generated
     XML descriptors in order to index data to solr.
@@ -86,10 +72,7 @@ def index(output_path, unpublish_dir, certificate_file, header_form, session):
         # loop over the records generated
         for record in file_list:
             # generate path to each file
-            if output_path.endswith(SLASH):
-                record_path = output_path + record
-            else:
-                record_path = output_path + SLASH + record
+            record_path = os.path.join(output_path, record)
             curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
             proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
             (out, err) = proc.communicate()
@@ -97,7 +80,8 @@ def index(output_path, unpublish_dir, certificate_file, header_form, session):
 
     # in case of unpublish operation, we generate the id only.
     elif session.operation == UNPUBLISH_OP:
-        curl_query = create_query(certificate_file, unpublish_dir, header_form, session.ws_url)
+        curl_query = create_query(certificate_file, unpublish_file, header_form, session.ws_url)
+        # TODO uncomment this.
         # shutil.rmtree(unpublish_dir)
         proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
         (out, err) = proc.communicate()
@@ -111,6 +95,7 @@ def convert_path_to_drs(path):
     :param path: string in format /path/to/directory/or/file
     :return: path.to.directory.or.file
     """
+    path = os.path.abspath(path)
     base_id = ''
     for index_num, c in enumerate(path):
             # skipping the slashes '/' from start and end of the path string.
@@ -125,25 +110,104 @@ def convert_path_to_drs(path):
     return base_id
 
 
-# TODO investigate if this method is possible
-def read_config(path, section, key):
-    config = ConfigParser.ConfigParser()
-    config.read(path)
-    value = config.get(section, key)
-    return value
-
-def check_xml(path):
+def check_xml(path, drs_dict):
     """
     The method compares the contents of the xml file to the DRS structure extracted info. In case of lacking information
     they are added to the xml record.
     :param path: path to xml record
     :return: modified xml file
     """
-    tree = etree.parse(path)
-    root = etree.tostring(tree.getroot())
-    # print(root)
-    print tree.xpath("//field[@name=variable]/content/text()")
+    if os.path.isfile(path):
+        print(path)
+        tree = etree.parse(path)
+        root = tree.getroot()
+        list_of_keys = []
+        for child in tree.iter('*'):
+            for key, value in child.items():
+                list_of_keys.append(value)
+        for key in drs_dict.keys():
+            if key not in list_of_keys:
+                print('This key %s was not found in the record and will be added from DRS' % key)
+                append_to_xml(root, key, drs_dict[key])
+                etree.tostring(tree, pretty_print=True)
+                print('The record has been enriched')
+        return tree
+    else:
+        raise NoFilesFound
 
 
+def append_to_xml(root, key, value):
+    """
+    Adds subelement to a root element of an existing xml file or one in building.
+    :param root: Root element of the xml document
+    :param key: the key attribute for the tag
+    :param value: the value that will be inserted to the text
+    """
+    new_elt = etree.SubElement(root, FIELD, name=key)
+    try:
+        new_elt.text = str(value)
+    except Exception:
+        pass
 
-check_xml('/home/abennasser/output/home.abennasse/Dataset.home.abennasse.xml')
+
+def handle_directory(path, xml_input):
+    """
+    This function explores given path and finds how many files are within (netCDF or xml)
+    :param path:
+    :param xml_input:
+    :return:
+    """
+    print('received this path %s and this xml_input' % path, xml_input)
+    if xml_input:
+        extension = XML_EXTENSION
+    else:
+        extentsion = NC_EXTENSION
+    valid_path = os.path.isdir(path)
+    print('valid path %s' % valid_path)
+    os.chdir(path)
+    file_list = os.walk(path)
+    number_of_files = 0
+    for triplet in file_list:
+        for file_name in triplet[2]:
+            if file_name.endswith(extension):
+                number_of_files += 1
+                # Found a netCDF file, useful if directory contains only one file.
+                persistent_file_name = file_name
+    if number_of_files == 0:
+        raise NoFilesFound
+    elif number_of_files == 1:
+        is_file = True
+        # Adding the filename to the path to get a file instead of a directory.
+        path = os.path.join(path, persistent_file_name)
+    return number_of_files, valid_path, path
+
+
+def create_output_dir(drs_id, output_parent):
+    """
+    This function builds the output path out of the DRS id, to ensure proper access and organization of the records.
+    :param drs_id: id containing the details of the dataset.
+    :param output_parent: base of the output directory.
+    :return: the absolute path of the output.
+    """
+    os.chdir(output_parent)
+    dir_list = drs_id.split(DOT)
+    for directory in dir_list:
+        if not os.path.exists(directory):
+            print 'creating the following directory %s' % directory
+            os.mkdir(directory)
+        os.chdir(directory)
+        output_parent = os.path.join(output_parent, directory)
+    return output_parent
+
+
+def create_unpublish_xml(unpublish_dir, node_instance, path):
+    gen_id = unpublish_id(path, node_instance)
+    page = etree.Element(DOC)
+    doc = etree.ElementTree(page)
+    new_elt = etree.SubElement(page, FIELD, name=ID)
+    new_elt.text = str(gen_id)
+    unpub_file = os.path.join(unpublish_dir, UNPUBLISHING_FILE)
+    out_file = open(unpub_file, 'w')
+    # Writing the dataset main record.
+    doc.write(out_file, pretty_print=True)
+    return unpub_file

@@ -38,12 +38,12 @@ class Dataset(DataObject):
         record
     """
 
-    def __init__(self, path, schema, version, is_file, netcdf_files, variables, node):
+    def __init__(self, path, schema, is_file, netcdf_files, variables, node, drs_dict):
         self.type = DATASET
         self.schema = schema
         self.path = os.path.abspath(path)
-        self.version = version
         self.is_file = is_file
+        self.version = drs_dict[VERSION]
         # If the dataset contains, a specific behavior is to be implemented.
         if self.is_file:
             self.file_name, self.path = self.extract_file_name()
@@ -113,32 +113,27 @@ class Dataset(DataObject):
 
         # Writing node related information:
         for key, value in self.node_info.iteritems():
-            new_elt = etree.SubElement(page, FIELD, name=key)
-            new_elt.text = value
+            append_to_xml(page, key, value)
 
         # Writing generic attributes of the dataset that require no special treatment
         # e.g number of files, path, version
         for key, value in vars(self).iteritems():
             if key not in (ID_DICT, VARIABLES, G_ATTR, RECORD, NETCDF_FILES, NODE_INFO, IS_FILE):
-                new_elt = etree.SubElement(page, FIELD, name=key)
-                try:
-                    new_elt.text = str(value)
-                except Exception:
-                    pass
+                append_to_xml(page, key, value)
         # Writing the identifiers
         for id_key, id_value in self.id_dictionary.iteritems():
-            new_elt = etree.SubElement(page, FIELD, name=id_key)
-            new_elt.text = id_value
+            append_to_xml(page, id_key, id_value)
 
         # Getting the global attributes of the different files.
         for global_attr, attr_value in self.global_attributes.iteritems():
+            # This test is designed to forbid the duplication of version inputs from the different files.
             if global_attr != VERSION:
-                new_elt = etree.SubElement(page, FIELD, name=global_attr)
-                new_elt.text = str(attr_value)
+                append_to_xml(page, global_attr, attr_value)
+
         # Getting the vars from the different files.
         for var in self.variables:
-            new_elt = etree.SubElement(page, FIELD, name=VARIABLE)
-            new_elt.text = var
+            append_to_xml(page, VARIABLE, var)
+
         # Creating the record for the dataset.
         self.record = doc
 
@@ -188,27 +183,23 @@ class NetCDFFile(DataObject):
         doc = etree.ElementTree(page)
         for key, value in vars(self).iteritems():
             if key not in (VARIABLES, G_ATTR, DATASET, NODE, ID_DICT, IS_FILE):
-                new_elt = etree.SubElement(page, FIELD, name=key)
-                try:
-                    new_elt.text = str(value)
-                except Exception:
-                    pass
+                append_to_xml(page, key, value)
 
         # Writing node information
         for key, value in dataset.node_info.iteritems():
-            new_elt = etree.SubElement(page, FIELD, name=key)
-            new_elt.text = value
+            append_to_xml(page, key, value)
 
         # Writing the different ids
         for id_key, id_value in self.id_dictionary.iteritems():
-            new_elt = etree.SubElement(page, FIELD, name=id_key)
-            new_elt.text = id_value
+            append_to_xml(page, id_key, id_value)
 
         # Writing the global attributes
         for global_attr in self.global_attributes:
             # Getting the value of the attributes.
             global_attr_value = getattr(open_netcdf_file, str(global_attr))
             # Updating the dataset global attributes keys and values.
+            # Note that we need to change the project_id key to project only
+            # This is a requirement for esg-search that expects project entry
             if global_attr == PROJECT_ID:
                 global_attr = PROJECT
             if global_attr not in dataset.global_attributes:
@@ -217,16 +208,15 @@ class NetCDFFile(DataObject):
             if isinstance(global_attr_value, basestring):
                 new_elt.text = global_attr_value
         # Checking global attributes for missing elements that can be retrieved from DRS.
-        for key, value in drs_dict.itertools():
+        # TODO changed items instead of itertools as hotfix, don't know why though.
+        for key, value in drs_dict.items():
             if key not in global_attr:
-                new_elt = etree.SubElement(page, FIELD, name=key)
-                new_elt.text = value
+                append_to_xml(page, key, value)
         all_var_names = open_netcdf_file.variables.keys()
 
         # Writing the variables.
         for var in all_var_names:
-            new_elt = etree.SubElement(page, FIELD, name=VARIABLE)
-            new_elt.text = var
+            append_to_xml(page, VARIABLE, var)
         self.record = doc
 
 

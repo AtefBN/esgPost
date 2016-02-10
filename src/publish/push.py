@@ -45,7 +45,7 @@ def main():
 
     try:
         args, last_args = getopt.getopt(argv, "",
-                                        ["help", "schema=", "path=", "version_number=", "publish", "unpublish",
+                                        ["help", "schema=", "path=", "publish", "unpublish",
                                          "remove_records", "xml_input"])
     except getopt.error:
         print sys.exc_value
@@ -57,12 +57,8 @@ def main():
             sys.exit()
         elif o in ("-s", "--schema"):
             schema = a
-        elif o == "--version_number":
-            version_number = a
         elif o == "--path":
-            is_file, valid_path, path = check_path(a)
-            if not valid_path:
-                raise InvalidPathException
+            path = a
         elif o == "--unpublish":
             operation = UNPUBLISH_OP
         elif o == "--publish":
@@ -73,53 +69,59 @@ def main():
             xml_input = True
         else:
             assert False, "unhandled option"
+
+    # Testing the input path
+    is_file, valid_path, path = check_path(path, xml_input)
+    print(valid_path)
+    if not valid_path:
+        raise InvalidPathException
     # Based on input create the Dataset that will host the netCDF files as well as the node_instance.
     # The empty lists are fillers for coming attributes of the dataset,
     # namely attributes coming from files.
     operation_url = config.get('utils-webservice', operation)
     session = Session(operation, operation_url)
-
-    # Testing inputs to avoid crash later.
-    # if session.operation == PUBLISH_OP and\
-    #         not ('schema' in vars().keys() and 'version_number' in vars().keys() and 'path' in vars().keys()):
-    #     raise BadSetOfOptions('The options in the input are incomplete, check the help.', 1)
-    # elif session.operation == UNPUBLISH_OP and 'path' not in vars().keys() and 'version_number' not in vars().keys():
-    #     raise BadSetOfOptions('The options in the input are incomplete, check the help', 1)
+    drs_dict = extract_from_drs(path)
 
     # Test the operation intended by the user from the input.
     if operation == PUBLISH_OP:
         if not xml_input:
             # initiating a dataset instance according to the user's input
-            dataset_instance = Dataset(path, schema, version_number, is_file, [], {}, node_instance)
+            dataset_instance = Dataset(path, schema, is_file, [], {}, node_instance, drs_dict)
             # Output_path variable contains the path of the generated
             # XML records that will be indexed in Solr.
-            output_path = extract_metadata(output_dir, dataset_instance,
-                                           node_instance)
+            output_path = extract_metadata(output_dir, dataset_instance, node_instance, drs_dict)
         else:
             # The data that will be published is already parsed in an xml format and is ready to be published
             # in this case the push mode publisher directly points towards the directory of the xml files
             # as if they were generated from netCDF files.
-            drs_dict = extract_from_drs(os.path.abspath(path))
-            check_xml(path)
-            output_path = path
+
+            # Go through all the xml files within the directory:
+            if os.path.isdir(path):
+                file_list = os.walk(path)
+                for f in file_list:
+                    for file_name in f[2]:
+                        if file_name.endswith(XML_EXTENSION):
+                            path_to_file = os.path.join(path, file_name)
+                            print('Checking the following file %s' % path_to_file)
+                            tree = check_xml(path_to_file, drs_dict)
+                            out_file = open(file_name, 'w')
+                            tree.write(out_file, pretty_print=True)
+                output_path = path
+            elif os.path.isfile(path) and path.endswith(XML_EXTENSION):
+                tree = check_xml(path, drs_dict)
+                out_file = open(path, 'w')
+                tree.write(out_file, pretty_print=True)
+                output_path = os.path.dirname(path)
     elif operation == UNPUBLISH_OP:
         # Generating the id used for unpublishing.
-        gen_id = unpublish_id(path, version_number, node_instance)
-        page = etree.Element('doc')
-        doc = etree.ElementTree(page)
-        new_elt = etree.SubElement(page, 'field', name='id')
-        new_elt.text = str(gen_id)
-        unpub_file = os.path.join(unpublish_dir, 'unpub.xml')
-        out_file = open(unpub_file, 'w')
-        # Writing the dataset main record.
-        doc.write(out_file, pretty_print=True)
-
+        # This is an on-going work, for the moment,
+        # The unpublishing operates on a dataset level.
+        unpub_file = create_unpublish_xml(unpublish_dir, node_instance, path)
     else:
-        raise NoOperationSelected('Please select an operation to perform, either publish or unpublish. See the the'
-                                  'help for further details.')
+        raise NoOperationSelected
 
     # Push the generated records or the generated id.
-    # index(output_path, unpub_file, cert_file, header, session)
+    index(output_path, unpub_file, cert_file, header, session)
 
     if remove_records and operation == PUBLISH_OP:
             # Go up one level to delete the output directory
