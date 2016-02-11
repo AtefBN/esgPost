@@ -28,6 +28,7 @@ NODE_INFO = 'node_info'
 IS_FILE = 'is_file'
 FIELD = 'field'
 DOC = 'doc'
+IGNORE_STR = 'ignore'
 
 # Entities
 DATASET = 'dataset'

@@ -28,3 +28,7 @@ class NoOperationSelected(BasicException):
 
 class IncompatibleWithDRSConfigPath(BasicException):
     pass
+
+
+class OutputDirectoryNotFound(BasicException):
+    pass

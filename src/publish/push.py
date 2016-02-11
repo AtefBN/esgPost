@@ -81,6 +81,8 @@ def main():
     operation_url = config.get('utils-webservice', operation)
     session = Session(operation, operation_url)
     drs_dict = extract_from_drs(path)
+    print('path : %s' % path)
+    print(drs_dict)
 
     # Test the operation intended by the user from the input.
     if operation == PUBLISH_OP:

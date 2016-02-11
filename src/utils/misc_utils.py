@@ -126,7 +126,7 @@ def check_xml(path, drs_dict):
             for key, value in child.items():
                 list_of_keys.append(value)
         for key in drs_dict.keys():
-            if key not in list_of_keys:
+            if key not in list_of_keys and key != IGNORE_STR:
                 print('This key %s was not found in the record and will be added from DRS' % key)
                 append_to_xml(root, key, drs_dict[key])
                 etree.tostring(tree, pretty_print=True)
@@ -189,7 +189,10 @@ def create_output_dir(drs_id, output_parent):
     :param output_parent: base of the output directory.
     :return: the absolute path of the output.
     """
-    os.chdir(output_parent)
+    if os.path.isdir(output_parent):
+        os.chdir(output_parent)
+    else:
+        raise OutputDirectoryNotFound
     dir_list = drs_id.split(DOT)
     for directory in dir_list:
         if not os.path.exists(directory):

@@ -1,5 +1,8 @@
 import ConfigParser
 import netCDF4
+import os
+import constants
+from constants import *
 
 from src.models.models import *
 
@@ -145,3 +148,6 @@ def unpublish_id(path, node):
     base_id = convert_path_to_drs(abs_path)
     gen_id = base_id + DOT + VERSION_STR + drs_dict[VERSION] + PIPE + node.data_node
     return gen_id
+
+
+print(extract_from_drs('/prodigfs/project/CMIP5/main/IPSL/IPSL-CM5A-LR/decadal2005/day/ocean/day/r1i1p1/latest'))
