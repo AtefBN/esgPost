@@ -161,7 +161,7 @@ def handle_directory(path, xml_input):
     if xml_input:
         extension = XML_EXTENSION
     else:
-        extentsion = NC_EXTENSION
+        extension = NC_EXTENSION
     valid_path = os.path.isdir(path)
     print('valid path %s' % valid_path)
     os.chdir(path)

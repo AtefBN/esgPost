@@ -21,9 +21,7 @@ def extract_metadata(output_dir, dataset, node, drs_dict):
     scan_directory(dataset, node, drs_dict)
 
     # Preparing the dataset's folder:
-    dataset_folder = output_path + SLASH + dataset.id_dictionary[DRS_ID]
-    if not os.path.exists(dataset_folder):
-        os.makedirs(dataset_folder)
+    dataset_folder = create_output_dir(dataset.id_dictionary[DRS_ID], output_path)
 
     # Writing records in the output directory:
     out_file = open(dataset_folder + SLASH + DATASET + DOT + dataset.id_dictionary[DRS_ID] + XML_EXTENSION, 'w')
@@ -129,8 +127,8 @@ def extract_from_drs(absolute_path):
             raise IncompatibleWithDRSConfigPath()
 
     # in case of latest in the version section we get the symbolic link destination.
-    if VERSION in param_dic and param_dic[VERSION] == LATEST_STR :
-        param_dic[VERSION] = os.path.realpath(absolute_path)
+    if VERSION in param_dic and param_dic[VERSION] == LATEST_STR:
+        param_dic[VERSION] = os.path.basename(os.path.realpath(absolute_path)).replace(VERSION_STR, '')
     return param_dic
 
 

@@ -17,7 +17,7 @@ select the latest input.
 
 # Retrieving key values from ini file.
 config = ConfigParser.ConfigParser()
-config.read('/root/PycharmProjects/esgPost/misc.ini')
+config.read(PATH_TO_CONFIG)
 # config.read('/home/esg-user/esgPost/misc.ini')
 output_dir = config.get('generic', 'output_dir')
 index_node = config.get('generic', 'index_node')
