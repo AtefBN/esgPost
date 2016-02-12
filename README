@@ -6,14 +6,16 @@ Command Line Arguments
 
 Example:
 Publish
-esgpost --schema cmip5 --version 1 --path /path/to/file --publish
+esgpost --schema cmip5 --path /path/to/file --publish
 Unpublish
-esgpost --schema cmip5 --version 1 --path /path/to file --unpublish
+esgpost --schema cmip5 --path /path/to file --unpublish
 
---schema, --version, --path:
+--schema, --path:
     (required) Specifies mandatory metadata that cannot be harvested directly from netCDF files.
 
 --publish / --unpublish :
     (required) Specifies the type of action the user wishes to accomplish.
 
 
+PS: This version generates a DRS_id that incorporates the version number of the dataset/file, this will be addressed in
+future releases.

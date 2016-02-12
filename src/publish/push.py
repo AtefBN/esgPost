@@ -42,7 +42,6 @@ def main():
     output_path = ''
     unpub_file = ''
     argv = sys.argv[1:]
-
     try:
         args, last_args = getopt.getopt(argv, "",
                                         ["help", "schema=", "path=", "publish", "unpublish",

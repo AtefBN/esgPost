@@ -40,7 +40,7 @@ def check_path(path, xml_input):
             is_file = True
     else:
         raise InvalidPathException
-    return is_file, valid_path, path
+    return is_file, valid_path, os.path.real(path)
 
 
 def create_query(cert, data, header, wsurl):
@@ -74,7 +74,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
             # generate path to each file
             record_path = os.path.join(output_path, record)
             curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
-            proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+            proc = subprocess.Popen([curl_query], stdout=subprocess.STDOUT, stderr=subprocess.STDOUT, shell=True)
             (out, err) = proc.communicate()
             print "Curl output: %s, errors: %s" % (out, err)
 
@@ -83,7 +83,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
         curl_query = create_query(certificate_file, unpublish_file, header_form, session.ws_url)
         # TODO uncomment this.
         # shutil.rmtree(unpublish_dir)
-        proc = subprocess.Popen([curl_query], stdout=FNULL, stderr=subprocess.STDOUT, shell=True)
+        proc = subprocess.Popen([curl_query], stdout=subprocess.STDOUT, stderr=subprocess.STDOUT, shell=True)
         (out, err) = proc.communicate()
         print "Curl output: %s, errors: %s" % (out, err)
 
@@ -117,23 +117,27 @@ def check_xml(path, drs_dict):
     :param path: path to xml record
     :return: modified xml file
     """
-    if os.path.isfile(path):
-        print(path)
-        tree = etree.parse(path)
-        root = tree.getroot()
-        list_of_keys = []
-        for child in tree.iter('*'):
-            for key, value in child.items():
-                list_of_keys.append(value)
-        for key in drs_dict.keys():
-            if key not in list_of_keys and key != IGNORE_STR:
-                print('This key %s was not found in the record and will be added from DRS' % key)
-                append_to_xml(root, key, drs_dict[key])
-                etree.tostring(tree, pretty_print=True)
-                print('The record has been enriched')
-        return tree
-    else:
-        raise NoFilesFound
+    index = 0
+    # if os.path.isfile(path):
+    index += 1
+    print(index)
+    tree = etree.parse(path)
+    root = tree.getroot()
+    list_of_keys = []
+    for child in tree.iter('*'):
+        for key, value in child.items():
+            list_of_keys.append(value)
+    print(list_of_keys)
+    for key in drs_dict.keys():
+        print(key)
+        if key not in list_of_keys and key != IGNORE_STR:
+            print('This key %s was not found in the record and will be added from DRS' % key)
+            append_to_xml(root, key, drs_dict[key])
+            etree.tostring(tree, pretty_print=True)
+            print('The record has been enriched')
+    return tree
+    # else:
+    #     raise NoFilesFound
 
 
 def append_to_xml(root, key, value):
@@ -214,3 +218,12 @@ def create_unpublish_xml(unpublish_dir, node_instance, path):
     # Writing the dataset main record.
     doc.write(out_file, pretty_print=True)
     return unpub_file
+
+"""
+This is a test
+"""
+path = '/home/abennasser/test.xml'
+drs_dict = {VERSION: 123, 'institute_id': 'IPSL_from_drs', 'project': 'CMIP16', 'ignore': 'FAILED'}
+tree = check_xml(path, drs_dict)
+print(etree.tostring(tree, pretty_print=True))
+

@@ -79,11 +79,12 @@ class Dataset(DataObject):
         # All the other ids can be built from it.
         # Hence I used it as a buffer and base_id.
         base_id = convert_path_to_drs(self.path)
+
         # Building the master and dataset id out of the base id.
         id_dictionary = dict()
         id_dictionary[MASTER_ID] = base_id
-        id_dictionary[ID] = base_id + DOT + VERSION_STR + self.version + PIPE + node.data_node
-        id_dictionary[INSTANCE_ID] = base_id + DOT + VERSION_STR + self.version
+        id_dictionary[ID] = base_id + DOT + PIPE + node.data_node
+        id_dictionary[INSTANCE_ID] = base_id
         id_dictionary[DRS_ID] = base_id
         return id_dictionary
 
@@ -174,8 +175,8 @@ class NetCDFFile(DataObject):
         id_dictionary = dict()
         id_dictionary[DATASET_ID] = dataset.id_dictionary[ID]
         id_dictionary[DRS_ID] = dataset.id_dictionary[DRS_ID]
-        id_dictionary[ID] = dataset.id_dictionary[DRS_ID] + DOT + VERSION_STR + dataset.version + DOT + self.file_name
-        id_dictionary[INSTANCE_ID] = dataset.id_dictionary[DRS_ID] + DOT + VERSION_STR + dataset.version + DOT + self.file_name
+        id_dictionary[ID] = dataset.id_dictionary[DRS_ID] + DOT + self.file_name
+        id_dictionary[INSTANCE_ID] = dataset.id_dictionary[DRS_ID] + DOT + self.file_name
         return id_dictionary
 
     def generate_record(self, open_netcdf_file, dataset, node, drs_dict):

@@ -130,7 +130,7 @@ def extract_from_drs(absolute_path):
             raise IncompatibleWithDRSConfigPath()
 
     # in case of latest in the version section we get the symbolic link destination.
-    if VERSION in param_dic and param_dic[VERSION] == LATEST_STR:
+    if param_dic[VERSION] == LATEST_STR:
         param_dic[VERSION] = os.path.basename(os.path.realpath(absolute_path)).replace(VERSION_STR, '')
     return param_dic
 
@@ -148,6 +148,3 @@ def unpublish_id(path, node):
     base_id = convert_path_to_drs(abs_path)
     gen_id = base_id + DOT + VERSION_STR + drs_dict[VERSION] + PIPE + node.data_node
     return gen_id
-
-
-print(extract_from_drs('/prodigfs/project/CMIP5/main/IPSL/IPSL-CM5A-LR/decadal2005/day/ocean/day/r1i1p1/latest'))
