@@ -40,7 +40,7 @@ def check_path(path, xml_input):
             is_file = True
     else:
         raise InvalidPathException
-    return is_file, valid_path, os.path.real(path)
+    return is_file, valid_path, os.path.realpath(path)
 
 
 def create_query(cert, data, header, wsurl):
@@ -74,7 +74,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
             # generate path to each file
             record_path = os.path.join(output_path, record)
             curl_query = create_query(certificate_file, record_path, header_form, session.ws_url)
-            proc = subprocess.Popen([curl_query], stdout=subprocess.STDOUT, stderr=subprocess.STDOUT, shell=True)
+            proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
             (out, err) = proc.communicate()
             print "Curl output: %s, errors: %s" % (out, err)
 
@@ -83,7 +83,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
         curl_query = create_query(certificate_file, unpublish_file, header_form, session.ws_url)
         # TODO uncomment this.
         # shutil.rmtree(unpublish_dir)
-        proc = subprocess.Popen([curl_query], stdout=subprocess.STDOUT, stderr=subprocess.STDOUT, shell=True)
+        proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
         (out, err) = proc.communicate()
         print "Curl output: %s, errors: %s" % (out, err)
 
