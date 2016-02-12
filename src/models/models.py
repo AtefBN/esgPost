@@ -211,7 +211,7 @@ class NetCDFFile(DataObject):
         # Checking global attributes for missing elements that can be retrieved from DRS.
         # TODO changed items instead of itertools as hotfix, don't know why though.
         for key, value in drs_dict.items():
-            if key not in global_attr:
+            if key not in global_attr and key != IGNORE_STR:
                 append_to_xml(page, key, value)
         all_var_names = open_netcdf_file.variables.keys()
 
