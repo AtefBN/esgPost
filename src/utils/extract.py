@@ -108,7 +108,7 @@ def extract_from_drs(absolute_path):
     absolute_path = os.path.abspath(absolute_path)
     # Initializing output dictionary.
     param_dic = dict()
-
+    param_dic[LATEST_STR] = False
     # Preparing the list of drs values.
     drs_list = absolute_path.split(SLASH)
     for element in drs_list:
@@ -132,6 +132,8 @@ def extract_from_drs(absolute_path):
     # in case of latest in the version section we get the symbolic link destination.
     if param_dic[VERSION] == LATEST_STR:
         param_dic[VERSION] = os.path.basename(os.path.realpath(absolute_path)).replace(VERSION_STR, '')
+        param_dic[LATEST_STR] = True
+
     return param_dic
 
 
