@@ -104,12 +104,12 @@ def main():
                         if file_name.endswith(XML_EXTENSION):
                             path_to_file = os.path.join(path, file_name)
                             print('Checking the following file %s' % path_to_file)
-                            tree = check_xml(path_to_file, drs_dict)
+                            tree = validate_xml(path_to_file, drs_dict)
                             out_file = open(file_name, 'w')
                             tree.write(out_file, pretty_print=True)
                 output_path = path
             elif os.path.isfile(path) and path.endswith(XML_EXTENSION):
-                tree = check_xml(path, drs_dict)
+                tree = validate_xml(path, drs_dict)
                 out_file = open(path, 'w')
                 tree.write(out_file, pretty_print=True)
                 output_path = os.path.dirname(path)
@@ -128,6 +128,14 @@ def main():
             # Go up one level to delete the output directory
             shutil.rmtree(output_path)
     time_elapsed = time() - tic
-    print("The publishing process took " + str(time_elapsed) + ' s')
+    print("The publishing process took " + str(time_elapsed) + ' s for publishing ' + dataset_instance.number_of_files +
+          'files.')
+    dataset_size = os.path.getsize(path)
+    output_size = os.path.getsize(output_path)
+    print("The dataset size is " + dataset_size + " the output size was reduced to " + output_size)
+    print("This renders the overall performance equal to regarding size " + output_size/dataset_size * 100 + "%")
+    print("Regarding time, the process took an overall " + time_elapsed/dataset_instance.number_of_files + 's per file')
+
 if __name__ == "__main__":
     main()
+

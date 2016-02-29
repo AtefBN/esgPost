@@ -4,7 +4,7 @@ from constants import *
 from custom_exceptions import *
 from lxml import etree
 from extract import *
-
+import shutil
 
 def check_version(v):
     """
@@ -61,7 +61,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
     :param certificate_file : path to the certificate_file
     :param header_form : contains header information
     :param session : a Session instance carrying information relative to this instance.
-    :param unpublish_dir : the directory in which the unpublish file resides.
+    :param unpublish_file : the directory in which the unpublish file resides.
     :return: Success or failure message: String
     """
     # if this is a publishing operation we loop over the xml records and publish them one by one.
@@ -82,7 +82,7 @@ def index(output_path, unpublish_file, certificate_file, header_form, session):
     elif session.operation == UNPUBLISH_OP:
         curl_query = create_query(certificate_file, unpublish_file, header_form, session.ws_url)
         # TODO uncomment this.
-        # shutil.rmtree(unpublish_dir)
+        shutil.rmtree(unpublish_file)
         proc = subprocess.Popen([curl_query], stdout=subprocess.PIPE, shell=True)
         (out, err) = proc.communicate()
         print "Curl output: %s, errors: %s" % (out, err)
@@ -110,11 +110,12 @@ def convert_path_to_drs(path):
     return base_id
 
 
-def check_xml(path, drs_dict):
+def validate_xml(path, drs_dict):
     """
     The method compares the contents of the xml file to the DRS structure extracted info. In case of lacking information
     they are added to the xml record.
     :param path: path to xml record
+    :param drs_dict : dictionary containing parameters harvested from DRS.
     :return: modified xml file
     """
     index = 0
@@ -142,7 +143,7 @@ def check_xml(path, drs_dict):
 
 def append_to_xml(root, key, value):
     """
-    Adds subelement to a root element of an existing xml file or one in building.
+    Adds a sub-element to a root element of an existing xml file or one in building.
     :param root: Root element of the xml document
     :param key: the key attribute for the tag
     :param value: the value that will be inserted to the text
@@ -190,7 +191,7 @@ def create_output_dir(drs_id, output_parent):
     """
     This function builds the output path out of the DRS id, to ensure proper access and organization of the records.
     :param drs_id: id containing the details of the dataset.
-    :param output_parent: base of the output directory.
+    :param output_parent: base of the output directory.heaven
     :return: the absolute path of the output.
     """
     if os.path.isdir(output_parent):
@@ -221,9 +222,9 @@ def create_unpublish_xml(unpublish_dir, node_instance, path):
 
 """
 This is a test
-"""
 path = '/home/abennasser/test.xml'
 drs_dict = {VERSION: 123, 'institute_id': 'IPSL_from_drs', 'project': 'CMIP16', 'ignore': 'FAILED'}
 tree = check_xml(path, drs_dict)
 print(etree.tostring(tree, pretty_print=True))
+"""
 
