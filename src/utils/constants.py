@@ -31,7 +31,7 @@ DOC = 'doc'
 IGNORE_STR = 'ignore'
 
 # Entities
-DATASET = 'dataset'
+DATASET = 'Dataset'
 NODE = 'node'
 FILE = 'File'
 NETCDF_FILES = 'netCDFFiles'

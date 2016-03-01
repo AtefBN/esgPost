@@ -131,16 +131,16 @@ def extract_from_drs(absolute_path):
 
     # in case of latest in the version section we get the symbolic link destination.
     if param_dic[VERSION] == LATEST_STR:
-        param_dic[VERSION] = os.path.basename(os.path.realpath(absolute_path)).replace(VERSION_STR, '')
+        param_dic[VERSION] = os.path.basename(os.path.realpath(absolute_path))
         param_dic[LATEST_STR] = True
-
+    # removing the 'v' from version for esg-search compatibility.
+    param_dic[VERSION] = param_dic[VERSION].replace(VERSION_STR, '')
     return param_dic
 
 
 def unpublish_id(path, node):
     """
     :param path
-    :param version
     :param node
     this method generate an ID like the following:
     '<delete><query>id:cmip5.test.v1|esgf-dev.dkrz.de</query></delete>'
@@ -150,3 +150,6 @@ def unpublish_id(path, node):
     base_id = convert_path_to_drs(abs_path)
     gen_id = base_id + DOT + VERSION_STR + drs_dict[VERSION] + PIPE + node.data_node
     return gen_id
+
+
+print(extract_from_drs("/prodigfs/project/CMIP5/main/IPSL/IPSL-CM5A-LR/historical/day/ocean/day/r1i1p1/v2"))

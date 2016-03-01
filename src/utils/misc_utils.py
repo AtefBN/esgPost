@@ -6,6 +6,7 @@ from lxml import etree
 from extract import *
 import shutil
 
+
 def check_version(v):
     """
     :param v: vers input
@@ -220,11 +221,14 @@ def create_unpublish_xml(unpublish_dir, node_instance, path):
     doc.write(out_file, pretty_print=True)
     return unpub_file
 
-"""
-This is a test
-path = '/home/abennasser/test.xml'
-drs_dict = {VERSION: 123, 'institute_id': 'IPSL_from_drs', 'project': 'CMIP16', 'ignore': 'FAILED'}
-tree = check_xml(path, drs_dict)
-print(etree.tostring(tree, pretty_print=True))
-"""
+
+def get_size(path):
+    """
+    :param path: string containing the path you wish to get the size of.
+    :return the size of the directory/file indicated by the path.
+    """
+    result = 0
+    for root, dirs, files in os.walk(path):
+        result += sum(os.path.getsize(os.path.join(root, name)) for name in files)
+    print result
 

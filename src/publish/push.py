@@ -128,14 +128,14 @@ def main():
             # Go up one level to delete the output directory
             shutil.rmtree(output_path)
     time_elapsed = time() - tic
-    print("The publishing process took " + str(time_elapsed) + ' s for publishing ' + dataset_instance.number_of_files +
+    print("The publishing process took " + str(time_elapsed) + ' s for publishing ' + str(dataset_instance.number_of_files) +
           'files.')
-    dataset_size = os.path.getsize(path)
-    output_size = os.path.getsize(output_path)
-    print("The dataset size is " + dataset_size + " the output size was reduced to " + output_size)
-    print("This renders the overall performance equal to regarding size " + output_size/dataset_size * 100 + "%")
-    print("Regarding time, the process took an overall " + time_elapsed/dataset_instance.number_of_files + 's per file')
+
+    dataset_size = get_size(path)
+    output_size = get_size(output_path)
+    print("The dataset size is " + str(dataset_size) + " the output size was reduced to " + str(output_size))
+    print("This renders the overall performance equal to regarding size " + str(output_size/dataset_size * 100) + "%")
+    print("Regarding time, the process took an overall " + str(time_elapsed/dataset_instance.number_of_files) + ' sec per file')
 
 if __name__ == "__main__":
     main()
-
