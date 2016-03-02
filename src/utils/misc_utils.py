@@ -230,5 +230,5 @@ def get_size(path):
     result = 0
     for root, dirs, files in os.walk(path):
         result += sum(os.path.getsize(os.path.join(root, name)) for name in files)
-    print result
+    return result
 

@@ -1,7 +1,9 @@
+from __future__ import division
 import getopt
 import shutil
 import sys
 sys.path.append('/root/PycharmProjects/esgPost')
+#sys.path.append('/home/esg-user/esgPost')
 from time import time
 from src.utils.extract import *
 from src.models.models import *
@@ -129,7 +131,7 @@ def main():
             shutil.rmtree(output_path)
     time_elapsed = time() - tic
     print("The publishing process took " + str(time_elapsed) + ' s for publishing ' + str(dataset_instance.number_of_files) +
-          'files.')
+          ' files.')
 
     dataset_size = get_size(path)
     output_size = get_size(output_path)

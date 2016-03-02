@@ -40,3 +40,4 @@ RECORD = 'record'
 # config
 
 PATH_TO_CONFIG = '/root/PycharmProjects/esgPost/misc.ini'
+# PATH_TO_CONFIG = '/home/esg-user/esgPost/misc.ini'
