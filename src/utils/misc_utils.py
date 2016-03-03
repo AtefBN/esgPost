@@ -5,6 +5,7 @@ from custom_exceptions import *
 from lxml import etree
 from extract import *
 import shutil
+import hashlib
 
 
 def check_version(v):
@@ -231,4 +232,16 @@ def get_size(path):
     for root, dirs, files in os.walk(path):
         result += sum(os.path.getsize(os.path.join(root, name)) for name in files)
     return result
+
+
+def hash_file(a_file, hash_technique, block_size=65536):
+    buf = a_file.read(block_size)
+    while len(buf) > 0:
+        hash_technique.update(buf)
+        buf = a_file.read(block_size)
+    return hash_technique.hexdigest()
+
+
+print(hash_file(open("/home/abennasser/Images/injuries.png", 'rb'), hashlib.md5()))
+
 

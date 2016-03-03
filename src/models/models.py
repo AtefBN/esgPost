@@ -163,6 +163,8 @@ class NetCDFFile(DataObject):
         # dictionary of global attributes
         self.global_attributes = global_attributes
         self.id_dictionary = self.extract_ids(dataset, node)
+        self.checksum = hash_file(open(self.path, 'rb'), hashlib.md5())
+        self.checksum_type = 'MD5'
 
     def extract_ids(self, dataset, node):
         """
@@ -209,7 +211,6 @@ class NetCDFFile(DataObject):
             if isinstance(global_attr_value, basestring):
                 new_elt.text = global_attr_value
         # Checking global attributes for missing elements that can be retrieved from DRS.
-        # TODO changed items instead of itertools as hotfix, don't know why though.
         for key, value in drs_dict.items():
             if key not in global_attr and key != IGNORE_STR:
                 append_to_xml(page, key, value)
